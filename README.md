@@ -1,6 +1,7 @@
 # XBRL
-PYTHON XBRL
+
 EDINETのXBRLをPYTHONの勉強がてらいじってみる
+
 2019年3月からEDINETがAPIに対応しXBRLが使いやすくなるためその準備をしていく
 
 XBRLToXLS.py
