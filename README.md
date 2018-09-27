@@ -2,6 +2,7 @@
 PYTHON XBRL
 EDINETのXBRLをPYTHONの勉強がてらいじってみる
 2019年3月からEDINETがAPIに対応しXBRLが使いやすくなるためその準備をしていく
+
 XBRLToXLS.py
 XBRLは多分4つのファイルより成り立っており
 1.拡張子xbrl　報告書インスタンス　財務諸表の値が格納
