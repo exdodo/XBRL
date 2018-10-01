@@ -28,7 +28,9 @@ doc2vec_test.py
 
 作成したword2vecモデルを使用したテスト
 
-今後　分類分けに挑戦したい
+doc2vec_cluster
+k Means法（どういった方法か知らない）で分類分け
+分類分けした集団に対してタグ付けしたい
 
 benford_law.py
 
