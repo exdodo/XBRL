@@ -20,7 +20,9 @@ if __name__ == "__main__":
     model_name='xbrl_doc2vecmodel'
     df1 = pd.read_csv('EdinetcodeDlInfo.csv',encoding='cp932',header=1,index_col=0)
     cluster_num=100 #分類数
-    edinetdic=df1['提出者名'].to_dict()    
+    edinetdic=df1['提出者名'].to_dict()
+    #\u3000削除
+    edinetdic={x:v.replace('\u3000','') for x,v in edinetdic.items()}
     # モデルのロード
     d2v_model = gensim.models.Doc2Vec.load(dir_model+model_name)
     #m2= gensim.models.Doc2Vec.load(dir_model+'xbrl_doc2vecmodeloverview')
