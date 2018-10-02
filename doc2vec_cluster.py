@@ -46,7 +46,7 @@ if __name__ == "__main__":
     datapoint = pca.transform(d2v_model.docvecs.vectors_docs)
     plt.figure
     colorlist = ["r", "g", "b", "c", "m", "y", "k", "w"]
-    color = [colorlist[] for i in labels]   
+    color = [colorlist[i%7] for i in labels]   
     plt.scatter(datapoint[:, 0], datapoint[:, 1], c=color)
     centroids = kmeans_model.cluster_centers_
     centroidpoint = pca.transform(centroids)
