@@ -42,7 +42,7 @@ if __name__ == "__main__":
     #クラスター出力
     for docs in cluster_to_docs.values():
         print(docs)
-    #クラスターの名前をwikiのword2vecを使い類推    
+    #分布をグラフ化    
     l = kmeans_model.fit_predict(d2v_model.docvecs.vectors_docs)
     pca = PCA(n_components=2).fit(d2v_model.docvecs.vectors_docs)
     datapoint = pca.transform(d2v_model.docvecs.vectors_docs)
