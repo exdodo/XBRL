@@ -22,7 +22,7 @@ doc2vec_xbrl.py 有価証券報告書をdoc2vec
 
 2017年の全上場企業の年次有価証券報告書をローカルフォルダーに持っていたので
 各企業のxbrlファイルを抜き出し文字情報だけのコーパスを作成、
-mecabで分かち書きし、gensimでword2vecモデルを作成しました
+mecabで分かち書きし、gensimでdoc2vecモデルを作成しました
 
 doc2vec_test.py
 
