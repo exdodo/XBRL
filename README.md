@@ -26,7 +26,7 @@ mecabで分かち書きし、gensimでdoc2vecモデルを作成しました
 
 doc2vec_test.py
 
-作成したword2vecモデルを使用したテスト
+作成したdoc2vecモデルを使用したテスト
 
 doc2vec_cluster
 
