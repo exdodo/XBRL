@@ -297,6 +297,24 @@ def edinet_code(filename):
     p=Path(filename)
     return p.name[20:26]
 
+def ToExcel_finace_sheets(df_fs) :
+    # 財務情報以外削除
+    df_fs = df_fs.dropna(axis=0, subset=['element_id'])  # element_id空白削除
+    df_fs = df_fs.dropna(axis=0, subset=['amount'])  # amount空白削除
+    df_fs = df_fs.dropna(axis=0, subset=['label_string'])  # label_string空白削除
+    df_fs = df_fs[(df_fs['context_ref'] == 'CurrentYearInstant') | (df_fs['context_ref'] == 'CurrentYearDuration')]
+    #df_fs['amount'] = df_fs['amount'].astype(int)
+    #roll_id list作成
+    ls=df_fs['role_id'].values.tolist()
+    rols=list(set(ls))
+    with pd.ExcelWriter(mandatory_year(filename) + '_' + edinet_code(filename) + '.xlsx') as writer:
+        for rol in rols:
+            df_name='df_'+rol
+            df_name = df_fs[df_fs['role_id'] == rol]
+            df_name=df_name[['f_label', 'label_string', 'amount','context_ref']]
+            print(df_name[['f_label', 'label_string', 'amount']])
+            df_name.to_excel(writer, sheet_name=rol)
+            
 if __name__=='__main__':
     result = defaultdict(dict)
     #filename='C:/Users/EDINET/2018/6/25/S100D6OS/S100D6OS/XBRL/PublicDoc/jpcrp030000-asr-001_E03563-000_2018-03-31_01_2018-06-25.xbrl'
@@ -326,17 +344,6 @@ if __name__=='__main__':
     df_merge=merge_df(result)
     #from_elementのラベル作成
     df_fs=add_from_label(df_merge,result)
-    #財務情報以外削除
-    df_fs=df_fs.dropna(axis=0, subset=['element_id'])  #element_id空白削除
-    df_fs=df_fs.dropna(axis=0, subset=['amount'])  #amount空白削除
-    df_fs=df_fs.dropna(axis=0, subset=['label_string'])  #label_string空白削除    
-    df_fs.to_excel(mandatory_year(filename)+'_'+edinet_code(filename)+'.xlsx',
-                   sheet_name='new_sheet_name')
-    
-    #sampleで連結貸借対照表　表示
-    df_fs=df_fs[~df_fs['context_ref'].str.contains('NonConsolidatedMember',na=False)] #連結抜き出す
-    df_fs=df_fs[~df_fs['context_ref'].str.contains('Prior',na=False)] #今期だけを抜き出す
-    df_fs=df_fs[~df_fs['context_ref'].str.contains('CurrentYearInstant_',na=False)] #純資産対策 
-    df_cbs=df_fs[df_fs['role_id']=='rol_ConsolidatedBalanceSheet']
-    print(df_cbs[['f_label','label_string','amount']])
+    #財務諸表をexcelへ
+    ToExcel_finace_sheets(df_fs)
     
