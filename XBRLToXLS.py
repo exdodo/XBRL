@@ -304,7 +304,7 @@ def ToExcel_finace_sheets(df_fs) :
     df_fs = df_fs.dropna(axis=0, subset=['label_string'])  # label_string空白削除
     df_fs = df_fs[(df_fs['context_ref'] == 'CurrentYearInstant') | (df_fs['context_ref'] == 'CurrentYearDuration')]
     #df_fs['amount'] = df_fs['amount'].astype(int)
-    #roll_id list作成
+    #財務諸表 list作成
     ls=df_fs['role_id'].values.tolist()
     rols=list(set(ls))
     with pd.ExcelWriter(mandatory_year(filename) + '_' + edinet_code(filename) + '.xlsx') as writer:
