@@ -27,4 +27,5 @@ mecabで分かち書きし、gensimでdoc2vecとfasttextモデルを作成しま
 さらに、fasttextはIDF値をもとめ、Sparse Document Vecotrsで図にして表示してみました
 
 benford_law.py
+
 全企業の有価証券報告書からベンフォードの法則で怪しい企業を見つけるために作成
