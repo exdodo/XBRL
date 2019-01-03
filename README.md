@@ -25,9 +25,9 @@ xbrl_d2v_ft__sdv.py
 各企業のxbrlファイルを抜き出し文字情報だけのコーパスを作成、
 mecabで分かち書きし、gensimでdoc2vecとfasttextモデルを作成しました。
 さらに、fasttextはIDF値をもとめ、SCDV(Sparse Composite Document Vectors)で
-図にして表示してみました。fasttextで各有価証券報告書をベクター化し、
+図にして表示してみました。別の表現ではfasttextで各有価証券報告書をベクター化し、
 それをIDFを使い単語の出現確率を加味すると、各有価証券報告書は300×60次元で
-分類されるので、ｔ－SNEを用いて2次元にして表示する。
+分類されるので、t-SNEを用いて次元圧縮し2次元にして表示する。
 
 benford_law.py
 
