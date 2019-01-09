@@ -293,9 +293,10 @@ def tsne_plot(gwbow,corp_dic) :
     plain_tsne = pd.DataFrame(tsne_model.embedding_[skip:limit, 0],columns = ["x"])
     plain_tsne["y"] = pd.DataFrame(tsne_model.embedding_[skip:limit, 1])    
     plain_tsne['corp_name']=corp_sr
-    df_edinetcode = pd.read_csv('EdinetcodeDlInfo.csv',encoding='cp932',header=1,index_col=0)    
-    df_merge=pd.merge(plain_tsne,df_edinetcode,left_on='corp_name',right_on='ＥＤＩＮＥＴコード')
-    df_tsne=df_merge[['x','y','提出者名']].copy()    
+    #df_edinetcode = pd.read_csv('EdinetcodeDlInfo.csv',encoding='cp932',header=1,index_col=0)    
+    #df_merge=pd.merge(plain_tsne,df_edinetcode,left_on='corp_name',right_on='ＥＤＩＮＥＴコード')
+    #df_tsne=df_merge[['x','y','提出者名']].copy()    
+    df_tsne=plain_tsne
     ax=df_tsne.plot.scatter(x="x",y="y",figsize=(10, 10),s=30)
     #各要素にラベルを表示
     for k,v in df_tsne.iterrows() :
