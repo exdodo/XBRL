@@ -244,25 +244,27 @@ def document_vector():
     #        
     gwbowv = np.zeros((f_count, 300*60)).astype(np.float32) #ゼロ行列作成（単語×次元）        
     cnt=0
+    corp_dic={}
     word_centroid_map = pickle.load(open("word_idf_dict.pkl","rb"))
     prob_wordvecs = pickle.load(open("idx_proba_dict.pkl","rb"))    
-    for file_path in tqdm(file_pathes):        
+    for file_path in file_pathes :        
         with open(file_path, 'r',encoding='utf-8') as wafile:
             #wakati text整形
             text = (wafile.read()).replace('\n','')
             text = re.sub(r"\text+", " ", text)
             #label付与
             tag_name = os.path.basename(file_path)
-            tag_name= '__label__'+tag_name[20:26]+'　,　'
+            corp_name=tag_name[20:26]
+            tag_name= '__label__'+tag_name[20:26]+'　,　'            
             text=tag_name+text
             text=text.replace('\u3000','')
             text=text.replace('\xa0','')
             text=text+','
             gwbowv[cnt]=create_cluster_vector_and_gwbowv(text,
                   word_centroid_map,prob_wordvecs)
+            corp_dic[cnt]=corp_name
             cnt +=1
-    return gwbowv
-    #スパースする
+    return gwbowv,corp_dic
     
 def create_cluster_vector_and_gwbowv(tokens,word_centroid_map,prob_wordvecs):
     
@@ -279,7 +281,26 @@ def create_cluster_vector_and_gwbowv(tokens,word_centroid_map,prob_wordvecs):
         bag_of_centroids /= norm    
     return bag_of_centroids
 
-                    
+def tsne_plot(gwbow,corp_dic) :
+    corp_sr=pd.Series(corp_dic)    
+    #300*60次元あるベクトルをt-sneで2次元へ
+    tsne_model = TSNE( n_components=2, random_state=0, verbose=2)
+    np.set_printoptions(suppress=True) #指数表記を禁止にして常に小数で表示
+    tsne_model.fit(gwbow)
+    # 散布図の表示    
+    skip=0
+    limit=4100 
+    plain_tsne = pd.DataFrame(tsne_model.embedding_[skip:limit, 0],columns = ["x"])
+    plain_tsne["y"] = pd.DataFrame(tsne_model.embedding_[skip:limit, 1])    
+    plain_tsne['corp_name']=corp_sr
+    df_edinetcode = pd.read_csv('EdinetcodeDlInfo.csv',encoding='cp932',header=1,index_col=0)    
+    df_merge=pd.merge(plain_tsne,df_edinetcode,left_on='corp_name',right_on='ＥＤＩＮＥＴコード')
+    df_tsne=df_merge[['x','y','提出者名']].copy()    
+    ax=df_tsne.plot.scatter(x="x",y="y",figsize=(10, 10),s=30)
+    #各要素にラベルを表示
+    for k,v in df_tsne.iterrows() :
+        ax.annotate(v[2],xy=(v[0],v[1]),size=15) 
+        
 if __name__=='__main__':
     dbpath=r'd:\data\xbrl\download\EDINET\2018'
     model_name_w2v='xbrl_w2v_model_2018'
@@ -294,18 +315,8 @@ if __name__=='__main__':
     tf_idf() #単語のIDF値を計算
     #SDV(Sparse Document Vecotrs) 作成
     prob_vector(model_name_ft,dir_model) #Document Topic-Vector Formation
-    gwbow=document_vector() #Sparse Document Vecotrs
-    #300*60次元あるベクトルをt-sneで2次元へ
-    tsne_model = TSNE( n_components=2, random_state=0, verbose=2)
-    np.set_printoptions(suppress=True) #指数表記を禁止にして常に小数で表示
-    tsne_model.fit(gwbow)
-    # 散布図の表示
-    skip=0
-    limit=4100 
-    plain_tsne = pd.DataFrame(tsne_model.embedding_[skip:limit, 0],columns = ["x"])
-    plain_tsne["y"] = pd.DataFrame(tsne_model.embedding_[skip:limit, 1])
-    plain_tsne.plot.scatter(x="x",y="y",figsize=(10, 10),s=30,)
-    plain_tsne.to_csv('df_ft_sdv.csv')    
+    gwbow,corp_dic=document_vector() #Sparse Document Vecotrs
+    tsne_plot(gwbow,corp_dic) #t-sne plot    
     #後処理　フォルダー(\wakati \doc)削除    
     shutil.rmtree('wakati')
     shutil.rmtree('doc')
