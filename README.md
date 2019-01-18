@@ -31,7 +31,11 @@ mecabで分かち書きし、gensimでdoc2vecとfasttextモデルを作成しま
 
 xbrl2018_scdv.csv
 
-t-SNEで2次元圧縮したCSV
+t-SNEで2次元圧縮した一覧のCSV
+
+tsne_cluster.py
+
+企業数が4000もあると図で表示しても見難い為、近い企業10社を図で表示
 
 benford_law.py
 
