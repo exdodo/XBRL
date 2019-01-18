@@ -49,10 +49,6 @@ def parse_file(file_path):
             #parse_xbrl(fxbrl,file_path)
 
 def extractNoun(text):
-    """
-       @input: sentence
-       @return: a list of noun words
-    """
     MecabMode = '-Ochasen'
     tagger = MeCab.Tagger(MecabMode)
     node = tagger.parseToNode(text)
