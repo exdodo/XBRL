@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Jan  3 08:33:15 2019
-DOC2VECとfastetextのモデルを作成する
-FastTextで解析しSparse Document Vecotrsを加え図に表す
+有価証券報告書をFastTextで解析しSparse Document Vecotrsを加え図に表す
 処理に時間がかかるのでパソコンを新調してしまった
 win10+Corei7-8700k+32GBメモリー+M.2 SSD
 fastetextのモデルでworkers=10に設定
-
+EdinetcodeDlInfo.csvをあらかじめedinetからダウンロードしておく
 参考URL
 word2vec fasttext
 https://srbrnote.work/archives/1315
@@ -27,6 +26,8 @@ https://www.pytry3g.com/entry/TSNE-example
 from lxml import objectify as ET
 import os
 import re
+import warnings
+warnings.filterwarnings(action='ignore', category=UserWarning, module='gensim')
 import gensim
 from gensim.models import FastText
 import subprocess
@@ -40,15 +41,41 @@ import pickle
 #from MulticoreTSNE import MulticoreTSNE as TSNE
 from sklearn.manifold import TSNE
 import pandas as pd
-
+import MeCab
 def parse_file(file_path):
     if  os.path.isfile(file_path) :
         with open(file_path,'rt', encoding='utf-8') as fxbrl:
-            parse_xbrl(fxbrl,file_path)
-            
-def parse_xbrl(fxbrl,file_path):   
+            parse_xbrl_noun(fxbrl,file_path)
+            #parse_xbrl(fxbrl,file_path)
+
+def extractNoun(text):
+    """
+       @input: sentence
+       @return: a list of noun words
+    """
+    MecabMode = '-Ochasen'
+    tagger = MeCab.Tagger(MecabMode)
+    node = tagger.parseToNode(text)
+    keywords = []
+    while node :
+        if node.stat != 0:
+            node = node.next
+            continue
+        if node.feature.split(",")[0] == u"名詞":
+            keywords.append(node.surface)
+        '''
+        elif node.feature.split(",")[0] == u"形容詞":
+             keywords.append(node.surface)
+        elif node.feature.split(",")[0] == u"動詞":
+             keywords.append(node.surface)
+        '''
+        node = node.next
+    return keywords
+
+def parse_xbrl_noun(fxbrl,file_path):   
     """
     XBRLからtextを取り出す
+    parse_xbrl改良　名詞だけ抽出 2019/01/18
     """    
     ET_xbrl=ET.parse(fxbrl)
     root=ET_xbrl.getroot()
@@ -74,24 +101,20 @@ def parse_xbrl(fxbrl,file_path):
     #記号削除
     xbrldoc=re.sub(r'[!-/:-@[-`{-~]', '',xbrldoc)
     xbrldoc=re.sub(u'[︰-＠]', '',xbrldoc)
-
-    #save \doc 
+    #名詞だけ抽出
+    xbrl_noun_ls=extractNoun(xbrldoc)
+    maped_list = map(str, xbrl_noun_ls)  #mapで要素すべてを文字列に
+    xbrltext = ' '.join(maped_list)
+       
+    #save \wakati 
     base_name=os.path.basename(file_path)
     base_name=base_name.replace('.xbrl','.txt')
-    os.makedirs('doc', exist_ok=True)
-    f = open(os.path.join('doc', base_name), 'w',encoding='utf-8') # 書き込みモードで開く
-    f.write(xbrldoc) # 引数の文字列をファイルに書き込む
-    f.close() # ファイルを閉じる
-           
-    #分かち書き処理 save /wakati
     os.makedirs('wakati', exist_ok=True)
-    #print(base_name)
-    wakati_in=os.path.join('doc', base_name)
-    wakati_out=os.path.join('wakati', base_name)
-    #wakatiを一つのコーパスにまとめる
-    subwakati = 'mecab -O wakati '+wakati_in+' -o '+wakati_out+' -b 10000000'
-    subprocess.check_call(subwakati,shell=True)
-            
+    f = open(os.path.join('wakati', base_name), 'w',encoding='utf-8') # 書き込みモードで開く
+    f.write(xbrltext) # 引数の文字列をファイルに書き込む
+    f.close() # ファイルを閉じる
+         
+           
 def delete_tag(anchor_text) : #tagを正規表現で外す
     text=str(anchor_text)
     if '<' in text :    
@@ -102,7 +125,7 @@ def delete_tag(anchor_text) : #tagを正規表現で外す
 def wakati(dbpath) :
     print ('Creating 分かち書き処理 ')
     file_paths=Path(dbpath).glob('**/*.xbrl')
-    for file_path in tqdm(file_paths):
+    for file_path in file_paths:
         dirpath, file_name = os.path.split(file_path)
         s=os.path.basename(file_path)
         edinetcode=s[20:26] #EDINET Code
@@ -196,14 +219,14 @@ def tf_idf():
     idf = tfv._tfidf.idf_
     word_idf_dict = dict(zip(feature_names, idf))
     pickle.dump(word_idf_dict, open("word_idf_dict.pkl", "wb"))
-    
-def word_clustering(model_name,dir_model):
-    #単語ベクトルクラスタリング
+
+#単語ベクトルクラスタリング    
+def word_clustering(model_name,dir_model):    
     '''
     「idx」はそれぞれの単語がどのクラスタに属するかを表した配列
     「idx_proba」はそれぞれの単語が各クラスタに属する確率
     '''
-    print ("Creating Cluster ---")
+    print ("Creating IDF Cluster ---")
     model = FastText.load(dir_model+model_name)
     word_vectors = model.wv.vectors
     clf =  GaussianMixture(n_components=60,
@@ -293,22 +316,22 @@ def tsne_plot(gwbow,corp_dic) :
     plain_tsne = pd.DataFrame(tsne_model.embedding_[skip:limit, 0],columns = ["x"])
     plain_tsne["y"] = pd.DataFrame(tsne_model.embedding_[skip:limit, 1])    
     plain_tsne['corp_name']=corp_sr
-    #df_edinetcode = pd.read_csv('EdinetcodeDlInfo.csv',encoding='cp932',header=1,index_col=0)    
-    #df_merge=pd.merge(plain_tsne,df_edinetcode,left_on='corp_name',right_on='ＥＤＩＮＥＴコード')
-    #df_tsne=df_merge[['x','y','提出者名']].copy()    
-    df_tsne=plain_tsne
+    df_edinetcode = pd.read_csv('EdinetcodeDlInfo.csv',encoding='cp932',header=1,index_col=0)    
+    df_merge=pd.merge(plain_tsne,df_edinetcode,left_on='corp_name',right_on='ＥＤＩＮＥＴコード')
+    df_tsne=df_merge[['x','y','提出者名']].copy()    
     ax=df_tsne.plot.scatter(x="x",y="y",figsize=(10, 10),s=30)
     #各要素にラベルを表示
     for k,v in df_tsne.iterrows() :
-        ax.annotate(v[2],xy=(v[0],v[1]),size=15) 
-        
+        ax.annotate(v[2],xy=(v[0],v[1]),size=15)                    
+
 if __name__=='__main__':
-    dbpath=r'd:\data\xbrl\download\EDINET\2018'
-    model_name_w2v='xbrl_w2v_model_2018'
-    model_name_ft='xbrl_ft_model_2018'
-    dir_model=r'd:\\data\\word2vecmodel\\'    
+    dbpath=r'd:\data\xbrl\download\EDINET\2018' #xbrl files directory
+    model_name_w2v='xbrl_w2v_model_2018' #word2vec file nane
+    model_name_ft='xbrl_ft_model_2018'  #fasttext file name
+    dir_model=r'd:\\data\\word2vecmodel\\'   #model save directory 
     #xbrl 前処理
     wakati(dbpath)
+    
     #DOC2VEC FASTTEXT idfモデル化
     doc2vec_model(model_name_w2v,dir_model)
     fasttext_model(model_name_ft,dir_model) #Word Vector(fasttext) Clustering 
@@ -320,4 +343,5 @@ if __name__=='__main__':
     tsne_plot(gwbow,corp_dic) #t-sne plot    
     #後処理　フォルダー(\wakati \doc)削除    
     shutil.rmtree('wakati')
-    shutil.rmtree('doc')
+    #shutil.rmtree('doc')
+    
