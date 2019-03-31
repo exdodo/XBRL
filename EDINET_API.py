@@ -21,7 +21,7 @@ import urllib3
 from urllib3.exceptions import InsecureRequestWarning
 urllib3.disable_warnings(InsecureRequestWarning) #verify=False対策
 from itertools import chain
-from time import time,sleep
+from time import sleep
 
 def jsonToList(sdt):    
     url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents.json'
@@ -41,7 +41,7 @@ def json_docs() :
         jsons=jsonToList(std)
         if  jsons!=[] :
             doc_list.append(jsons)
-            time.sleep(1)
+        sleep(1)
         dt_5y=dt_5y+timedelta(days=1)
     docs=list(chain.from_iterable(doc_list))  #flatten  
     df_docs=pd.io.json.json_normalize(docs) #To Dataframe
