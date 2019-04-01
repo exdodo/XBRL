@@ -43,7 +43,7 @@ def datelog():
             datelogs=pickle.load(log)            
             datelogs.sort()        
     if(len(datelogs)>(1826)) : #過去5年を超える日付は削除
-        del datelogs[1825:]                
+        del datelogs[0:len(datelogs)-1826]                
     return datelogs
 
 def json_docs(dt_5y,dt_today,df_doc1) :    
