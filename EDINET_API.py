@@ -28,7 +28,7 @@ import pickle
 
 def jsonToList(sdt):    
     url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents.json'
-    params = {'date': sdt, 'type': 1}
+    params = {'date': sdt, 'type': 2}
     headers = {'User-Agent': 'hoge'}
     res = requests.get(url, params=params, verify=False,timeout=3.5, headers=headers)
     sleep(1) #1秒間をあける
@@ -68,7 +68,7 @@ def json_docs(dt_5y,dt_today,df_doc1) :
 def get_xbrl(docID) :
     #書類取得
     url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents/'+docID
-    params = { 'type': 2}
+    params = { 'type': 1}
     headers = {'User-Agent': 'hoge'}
     res = requests.get(url, params=params,verify=False,timeout=3.5, headers=headers)
     sleep(1) #1秒間をあける
