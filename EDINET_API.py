@@ -83,13 +83,8 @@ def get_xbrl(docID) :
     ATTRIBUTE = 'filename='
     fileName = contentDisposition[contentDisposition.find(ATTRIBUTE) + len(ATTRIBUTE):]
     print(contentType,fileName)
-    
-if __name__=='__main__':
-    last_day=date.today()
-    start_day=last_day-timedelta(days=8) #約5年前なら5*365　正確さを求めるならrelativedelta
-    if last_day < start_day : start_day=last_day    
-    df_doc2=json_docs(start_day,last_day) #過去ｎ日文の書類リストをまとめる
-    
+
+def concat_df(df_doc2):
     #concat
     if os.path.exists('xbrldocs.json') :  
         df_doc1=pd.read_json('xbrldocs.json')
@@ -98,6 +93,14 @@ if __name__=='__main__':
         df_concat.to_json('xbrldocs.json')
     else : df_doc2.to_json('xbrldocs.json')
         
+if __name__=='__main__':
+    last_day=date.today()
+    start_day=last_day-timedelta(days=8) #約5年前なら5*365　正確さを求めるならrelativedelta
+    if last_day < start_day : start_day=last_day    
+    df_doc2=json_docs(start_day,last_day) #過去ｎ日文の書類リストをまとめる
+    if df_doc2.empty==False:
+        concat_df(df_doc2) 
+    
 '''    
     #docIDを取得する
     df_read = pd.read_json('xbrldocs.json')
