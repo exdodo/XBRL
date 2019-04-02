@@ -35,4 +35,4 @@ tsne_cluster.py：企業数が4000もあると図で表示しても見難い為�
 
 benford_law.py：全企業の有価証券報告書からベンフォードの法則で怪しい企業を見つけるために作成
 2019/03/27　追加
-EDINET_API: edinetからAPIでXBRLを取得する
+EDINET_API: edinetからAPIで全日までのド提出書類一覧情報をJSON形式で取得する
