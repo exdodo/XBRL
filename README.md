@@ -29,14 +29,17 @@ gensimでdoc2vecとfasttextモデルを作成しました。
 それをIDFを使い単語の出現確率を加味すると、各有価証券報告書は300×60次元で
 分類されるので、t-SNEを用いて次元圧縮し2次元にして表示する。
 
-xbrl2018_scdv.csv：t-SNEで2次元圧縮した一覧のCSV
+xbrl2018_scdv.csv：
+t-SNEで2次元圧縮した一覧のCSV
 
-tsne_cluster.py：企業数が4000もあると図で表示しても見難い為、近い企業10社を図で表示
+tsne_cluster.py：
+企業数が4000もあると図で表示しても見難い為、近い企業10社を図で表示
 
-benford_law.py：全企業の有価証券報告書からベンフォードの法則で怪しい企業を見つけるために作成
+benford_law.py：
+全企業の有価証券報告書からベンフォードの法則で怪しい企業を見つけるために作成
 
-EDINET_API: 
+EDINET_API.py: 
 edinetからAPIで前日までの提出書類一覧情報をJSON形式で'xbrldocs.json'を取得する
 
-edinet_ref_docIDS: 
+edinet_ref_docIDs.py: 
 EDINET_APIで作成した'xbrldocs.json'からdocIDsを抽出
