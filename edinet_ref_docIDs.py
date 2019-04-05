@@ -28,7 +28,7 @@ XBRL有無フラグ	xbrlFlag,PDF有無フラグ	pdfFlag,代替書面・添付文
 def get_xbrl(docID) :
     #書類取得
     url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents/'+docID
-    params = { 'type': 2}
+    params = { 'type': 1} #1:zip 2: pdf
     headers = {'User-Agent': 'hoge'}
     res = requests.get(url, params=params,verify=False,timeout=3.5, headers=headers)
     sleep(1) #1秒間をあける
@@ -36,8 +36,11 @@ def get_xbrl(docID) :
     contentDisposition = res.headers['Content-Disposition']
     ATTRIBUTE = 'filename='
     fileName = contentDisposition[contentDisposition.find(ATTRIBUTE) + len(ATTRIBUTE):]
-    print(contentType,fileName)
-
+    fileName=fileName.replace('\"','')
+    print(contentType,fileName)    
+    with open(fileName,'wb') as fXBRL :
+        fXBRL.write(res.content)
+        
 def largeShare_people(df,nYear=2019):
     #人名検索　大量保有報告書 提出ランキング
     #mode_value = df['filerName'].mode()    
