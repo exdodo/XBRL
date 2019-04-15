@@ -78,10 +78,11 @@ def df_From_docIDS(docIDs,df) :
     df=df.set_index('docID')
     df=df.sort_values('dtDate')
     df=df.loc[docIDs]
+    df=df.sort_values('submitDateTime')
     print(df[['submitDateTime','filerName']])
     
 if __name__=='__main__':
-    seek_word='スペース' #証券コードのとき文字列にする　例'6501'
+    seek_word='6501' #証券コードのとき文字列にする　例'6501'
     nYears=[2019,2019] #期間指定　年　以上以内
     df = pd.read_json('xbrldocs.json') #約30万行
     df = colunm_shape(df)
