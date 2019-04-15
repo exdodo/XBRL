@@ -12,13 +12,12 @@ import urllib3
 from urllib3.exceptions import InsecureRequestWarning
 urllib3.disable_warnings(InsecureRequestWarning) #verify=False対策
 from time import sleep
-from edinet_jsons import doc_jsons
 
 def get_xbrl(docID) :
     #書類取得
     url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents/'+docID
     params = { 'type': 1} #1:zip 2: pdf
-    headers = {'User-Agent': 'exdodo@gmail.com'}
+    headers = {'User-Agent': 'hoge'}
     res = requests.get(url, params=params,verify=False,timeout=3.5, headers=headers)
     sleep(1) #1秒間をあける
     contentType = res.headers['Content-Type']
@@ -84,7 +83,6 @@ def df_From_docIDS(docIDs,df) :
 if __name__=='__main__':
     seek_word='スペース' #証券コードのとき文字列にする　例'6501'
     nYears=[2019,2019] #期間指定　年　以上以内
-    doc_jsons() #前日まで提出書類一覧を取得
     df = pd.read_json('xbrldocs.json') #約30万行
     df = colunm_shape(df)
     #検索対象列の決定 提出者名,提出者証券コード,提出書類概要
