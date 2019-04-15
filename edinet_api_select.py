@@ -43,16 +43,17 @@ def largeShare_people(df,nYear=2019):
     print(str(nYear)+'年 人名検索　大量保有報告書 提出回数ランキング')
     print(mode_value)
 
-def select_docIDs(df,seek_word,df_columns) :    
+def select_docIDs(df,seek_words,df_columns) :    
     docIDs=[]
     for df_column in df_columns :
-        df_contains = df[df[df_column].str.contains(seek_word,na=False)]    
-        df_contains=df_contains.sort_values('submitDateTime')
-        if len(df_contains['docID'].to_list())>0 : 
-            docIDs.append(df_contains['docID'].to_list())
-    flat_docs = [item for sublist in docIDs for item in sublist]
-    unique_docs=list(set(flat_docs))
-    return unique_docs #flatten    
+        for seek_word in seek_words :
+            df_contains = df[df[df_column].str.contains(seek_word,na=False)]    
+            df_contains=df_contains.sort_values('submitDateTime')
+            if len(df_contains['docID'].to_list())>0 : 
+                docIDs.append(df_contains['docID'].to_list())
+    flat_docs = [item for sublist in docIDs for item in sublist] #flatten
+    unique_docs=list(set(flat_docs)) #重複削除
+    return unique_docs  
 
 def select_dict_docIDs(df,seek_word):
     #辞書にして抽出
@@ -82,7 +83,7 @@ def df_From_docIDS(docIDs,df) :
     print(df[['submitDateTime','filerName']])
     
 if __name__=='__main__':
-    seek_word='6501' #証券コードのとき文字列にする　例'6501'
+    seek_words=['6501','野村'] #証券コードのとき文字列にする　例'6501'
     nYears=[2019,2019] #期間指定　年　以上以内
     df = pd.read_json('xbrldocs.json') #約30万行
     df = colunm_shape(df)
@@ -92,7 +93,7 @@ if __name__=='__main__':
     df=df[(df['dtDate'].dt.year >= min(nYears)) 
             & (df['dtDate'].dt.year <= max(nYears))]        
     #提出者名のdocID取得
-    docIDs=select_docIDs(df,seek_word,df_columns)    
+    docIDs=select_docIDs(df,seek_words,df_columns)    
     df_From_docIDS(docIDs,df)
     #largeShare_people(df,nYear) #大量保有報告書人名ランキング
     #for docID in docIDs :        
