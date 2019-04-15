@@ -43,3 +43,4 @@ edinetからAPIで前日までの提出書類一覧情報をJSON形式で'xbrldo
 
 edinet_api_select.py: 
 EDINET_APIで作成した'xbrldocs.json'から部分一致の検索でdocIDsを抽出しxbrlを取得
+検索ワードをリストで検索できるようにしたいな
