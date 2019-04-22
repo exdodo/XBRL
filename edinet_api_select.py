@@ -23,6 +23,8 @@ def get_xbrl(docID,df,path) :
     #path
     sDate=df[df['docID']==docID].submitDateTime.to_list()[0]
     path=path+'\\'+sDate[0:4]+'\\'+sDate[5:7]+'\\'+sDate[8:10]+'\\'+docID
+    if os.path.isdir(save_path) == True : #過去に読み込んだ事あるか(dirあるか)
+        return
     #書類取得
     url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents/'+docID
     params = { 'type': 1} #1:zip 2 pdf
