@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Apr  2 07:39:42 2019
+参考URL
 https://qiita.com/simonritchie/items/dd737a52cf32b662675c
 https://kunai-lab.hatenablog.jp/entry/2018/04/08/134924
 https://blog.statsbeginner.net/entry/2017/05/08/072357
