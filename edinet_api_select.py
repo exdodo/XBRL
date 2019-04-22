@@ -14,7 +14,7 @@ urllib3.disable_warnings(InsecureRequestWarning) #verify=False対策
 from time import sleep
 import zipfile
 import io
-def get_xbrl(docID,df,path) :
+def get_xbrl(docID,df,save_path) :
     '''
     過去５年分のEDINETファイル情報は３０万以上あり有価証券報告書だけで1tbに迫ります
     指定したpathへsubDateTimeから'\年\月\日\文章コード'のディレクトリーを作成し保存
@@ -22,7 +22,7 @@ def get_xbrl(docID,df,path) :
     '''
     #path
     sDate=df[df['docID']==docID].submitDateTime.to_list()[0]
-    path=path+'\\'+sDate[0:4]+'\\'+sDate[5:7]+'\\'+sDate[8:10]+'\\'+docID
+    save_path=save_path+'\\'+sDate[0:4]+'\\'+sDate[5:7]+'\\'+sDate[8:10]+'\\'+docID
     if os.path.isdir(save_path) == True : #過去に読み込んだ事あるか(dirあるか)
         return
     #書類取得
@@ -33,7 +33,7 @@ def get_xbrl(docID,df,path) :
     sleep(1) #1秒間をあける    
     if 'stream' in res.headers['Content-Type'] :
         with zipfile.ZipFile(io.BytesIO(res.content)) as existing_zip:        
-            existing_zip.extractall(path)
+            existing_zip.extractall(save_path)
     else :
         print('error : '+docID)
 
