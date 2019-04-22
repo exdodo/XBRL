@@ -42,5 +42,5 @@ EDINET_API.py:
 edinetからAPIで前日までの提出書類一覧情報をJSON形式で'xbrldocs.json'を取得する
 
 edinet_api_select.py: 
-EDINET_APIで作成した'xbrldocs.json'から部分一致の検索でdocIDsを抽出しxbrlを取得
+EDINET_APIで作成した'xbrldocs.json'から部分一致の検索でdocIDsを抽出しxbrlをフォルダー分けして取得
 
