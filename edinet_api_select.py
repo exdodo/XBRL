@@ -12,22 +12,28 @@ import urllib3
 from urllib3.exceptions import InsecureRequestWarning
 urllib3.disable_warnings(InsecureRequestWarning) #verify=False対策
 from time import sleep
-
-def get_xbrl(docID) :
+import zipfile
+import io
+def get_xbrl(docID,df,path) :
+    '''
+    過去５年分のEDINETファイル情報は３０万以上あり有価証券報告書だけで1tbに迫ります
+    指定したpathへsubDateTimeから'\年\月\日\文章コード'のディレクトリーを作成し保存
+    docIDが分かれば保存先も判明    
+    '''
+    #path
+    sDate=df[df['docID']==docID].submitDateTime.to_list()[0]
+    path=path+'\\'+sDate[0:4]+'\\'+sDate[5:7]+'\\'+sDate[8:10]+'\\'+docID
     #書類取得
     url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents/'+docID
-    params = { 'type': 1} #1:zip 2: pdf
-    headers = {'User-Agent': 'hoge'}
+    params = { 'type': 1} #1:zip 2 pdf
+    headers = {'User-Agent': 'exdodo@gmail.com'}
     res = requests.get(url, params=params,verify=False,timeout=3.5, headers=headers)
-    sleep(1) #1秒間をあける
-    contentType = res.headers['Content-Type']
-    contentDisposition = res.headers['Content-Disposition']
-    ATTRIBUTE = 'filename='
-    fileName = contentDisposition[contentDisposition.find(ATTRIBUTE) + len(ATTRIBUTE):]
-    fileName=fileName.replace('\"','')
-    print(contentType,fileName)    
-    with open(fileName,'wb') as fXBRL :
-        fXBRL.write(res.content)
+    sleep(1) #1秒間をあける    
+    if 'stream' in res.headers['Content-Type'] :
+        with zipfile.ZipFile(io.BytesIO(res.content)) as existing_zip:        
+            existing_zip.extractall(path)
+    else :
+        print('error : '+docID)
 
 def largeShare_people(df,nYear=2019):
     #人名検索　大量保有報告書 提出ランキング
@@ -85,6 +91,7 @@ def df_From_docIDS(docIDs,df) :
 if __name__=='__main__':
     seek_words=['6501','野村'] #証券コードのとき文字列にする　例'6501'
     nYears=[2019,2019] #期間指定　年　以上以内
+    path='' #保存先指定
     df = pd.read_json('xbrldocs.json') #約30万行
     df = colunm_shape(df)
     #検索対象列の決定 提出者名,提出者証券コード,提出書類概要
@@ -97,7 +104,7 @@ if __name__=='__main__':
     df_From_docIDS(docIDs,df)
     #largeShare_people(df,nYear) #大量保有報告書人名ランキング
     #for docID in docIDs :        
-        #get_xbrl(docID)    
+        #get_xbrl(docID,df,path)    
     '''
     21:連番	seqNumber,5:書類管理番号	docID,8:提出者EDINETコード	edinetCode
     20:提出者証券コード secCode,0:提出者法人番号	JCN,5:提出者名 filerName
