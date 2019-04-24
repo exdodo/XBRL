@@ -26,15 +26,22 @@ from time import sleep
 import os
 import pickle
 from tqdm import tqdm
-
+import json
+import sys
 def request_json(sdt):    
     url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents.json'
     params = {'date': sdt, 'type': 2}
     headers = {'User-Agent': 'hoge'}
     res = requests.get(url, params=params, verify=False,timeout=3.5, headers=headers)
     sleep(1) #1秒間をあける
-    rjson=res.json()
-    return rjson
+    try :
+        rjson=res.json()        
+        datelogs.append(sdt) #エラーなければ日付追加    
+        return rjson,datelogs
+    except json.JSONDecodeError as e:
+        print(e)
+        print('通信回線混雑のため少し立って実行してください')
+        sys.exit()
 def datelog():
     #読込日を覚えておく
     datelogs=[] 
