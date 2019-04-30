@@ -8,6 +8,7 @@ Created on Tue Sep 18 16:08:30 2018
 『簡単にできるXBRL　基礎編』　池田智之
 『会計人のためのXBRL入門』坂上学
 https://qiita.com/shima_x/items/58634a838ab37c3607b5
+https://www.meganii.com/blog/2017/06/18/what-is-edinet-xbrl/
 http://orangain.hatenablog.com/entry/namespaces-in-xpath
 http://www.fsa.go.jp/search/20170228.html
 https://srbrnote.work/archives/1315
