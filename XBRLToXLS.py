@@ -35,27 +35,25 @@ def get_link_base(xrdfile):
     return link_base
 
 def get_label(link_base):
+    # get common taxonomy from link_base
     link_dict = defaultdict(list)
+    #link_base file名から頭文字5文字を抽出 element_id接頭語決定
+    prefix=os.path.basename(link_base)[0:6]
     #https://stackoverflow.com/questions/10457564/error-failed-to-load-external-entity-when-using-python-lxml
     labels = ET.parse(link_base)
     root= labels.getroot()
-    ns= root.nsmap    
-    # get common taxonomy
-    link_labels=labels.findall('.//link:label',ns)    
-    for link_label in link_labels :
+    ns= root.nsmap
+    ns['xml']='http://www.w3.org/XML/1998/namespace'
+    for link_label in labels.findall('.//link:label',ns) :        
         link_dict['lab_type'].append(link_label.attrib['{'+ns['xlink']+'}type'])
         link_dict['label'].append(link_label.attrib['{'+ns['xlink']+'}label'])
         link_dict['roll'].append(link_label.attrib['{'+ns['xlink']+'}role'])
-        link_dict['lang'].append(link_label.                     
-                     attrib['{http://www.w3.org/XML/1998/namespace}lang'])
-                    #attrib['{'+ns['xlink']+'}lang'])
-        element_id=link_label.attrib['id'].replace('label_','jppfs_cor_')
+        link_dict['lang'].append(link_label.attrib['{'+ns['xml']+'}lang'])
+        element_id=link_label.attrib['id'].replace('label_',prefix)
         link_dict['element_id'].append(element_id)
         link_dict['lab_name']=link_label.attrib['id']
-        link_dict['label_string'].append(link_label.text)
-    
+        link_dict['label_string'].append(link_label.text)        
     return pd.DataFrame(link_dict)
-
 def parse_xbrl(fxbrl):   
     """
     return(element_id, amount, context_ref, unit_ref, decimals)
