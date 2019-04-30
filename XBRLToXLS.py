@@ -39,7 +39,7 @@ def get_label(link_base):
     # get common taxonomy from link_base
     link_dict = defaultdict(list)
     #link_base file名から頭文字5文字を抽出 element_id接頭語決定
-    prefix=os.path.basename(link_base)[0:6]
+    prefix=os.path.basename(link_base)[0:6]+'cor_'
     #https://stackoverflow.com/questions/10457564/error-failed-to-load-external-entity-when-using-python-lxml
     labels = ET.parse(link_base)
     root= labels.getroot()
