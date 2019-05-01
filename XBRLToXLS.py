@@ -159,31 +159,25 @@ def get_xml_attrib_value( node, attrib):
         return node.attrib[attrib]
     else:
         return None
-def parse_companyxml(lab_file) :   
+def parse_companyxml(lab_file,labfilename) :   
     comp_labels = None
     label_dict = defaultdict(list)
     labels = ET.parse(lab_file)
     root=labels.getroot()
     ns=root.nsmap
-    for label_node in labels.findall('.//link:label',namespaces=ns):
-        label_label = label_node.attrib['{'+ns['xlink']+'}label'] 
-        
-        for labelArc_node in labels.findall('.//link:labelArc',namespaces=ns):
-            if label_label != labelArc_node.attrib['{'+ns['xlink']+'}to']:
-                continue
-            for loc_node in labels.findall('.//link:loc',namespaces=ns):
-                loc_label = loc_node.attrib['{'+ns['xlink']+'}label']
-                if loc_label != labelArc_node.attrib['{'+ns['xlink']+'}from']:
-                    continue
-                lang =label_node.attrib['{http://www.w3.org/XML/1998/namespace}lang']
-                label_role = label_node.attrib['{'+ns['xlink']+'}role']
-                href = loc_node.attrib['{'+ns['xlink']+'}href']
-
-                label_dict['element_id'].append( href.split('_')[-1] )
-                label_dict['label_string'].append( label_node.text)
-                label_dict['lang'].append( lang )
-                label_dict['label_role'].append( label_role )
-                label_dict['href'].append( href )               
+    ns['xml']='http://www.w3.org/XML/1998/namespace'
+    #jpcrp030000-asr-001_E01737-000_2018-03-31_01_2018-06-29_lab.xml
+    prefix=os.path.basename(labfilename)[0:15]+'_'+\
+            os.path.basename(labfilename)[20:30]+'_'
+    #print(prefix) jpcrp030000-asr_E01737-000_
+    for label_node in labels.findall('.//link:label',ns):        
+        lang =label_node.attrib['{'+ns['xml']+'}lang']
+        label_role = label_node.attrib['{'+ns['xlink']+'}role']
+        element_id=label_node.attrib['id'].replace('label_',prefix)
+        label_dict['element_id'].append( element_id )
+        label_dict['label_string'].append( label_node.text)
+        label_dict['lang'].append( lang )
+        label_dict['label_role'].append( label_role )
     comp_labels=pd.DataFrame( label_dict)
     result['comp_labels'] = comp_labels
     #company prezentation
@@ -338,7 +332,7 @@ if __name__=='__main__':
     #copmany
     if  os.path.isfile(labfilename) :
         with open(labfilename,'rt', encoding='utf-8') as fxbrl:                        
-            parse_companyxml(fxbrl)
+            parse_companyxml(fxbrl,labfilename)
     #統合
     df_merge=merge_df(result)
     #from_elementのラベル作成
