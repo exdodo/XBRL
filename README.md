@@ -15,8 +15,8 @@ EDINET_APIで作成した'xbrldocs.json'から部分一致の検索でdocIDsを�
 XbrlToXls.py:
 
 XBRLをエクセル型式へ
-docIDsからXBRLを探してexcel形式に変換
-1年前から飽きずによくつくったわ。有価証券報告書以外の書類もdf_mergeの形で取り込めるので今後は応用を考えていこう
+docIDsからXBRLを探してexcel形式に変換。
+有価証券報告書以外の書類もdf_mergeの形で取り込めるので今後は応用を考えていこう
 
 xbrl_d2v_ft__sdv.py
 
