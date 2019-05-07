@@ -14,8 +14,8 @@ EDINET_APIで作成した'xbrldocs.json'から部分一致の検索でdocIDsを�
 
 XbrlToXls.py:
 
-財務諸表をエクセル型式へ
-docIDからXBRLを探してexcel形式に変換
+XBRLをエクセル型式へ
+docIDsからXBRLを探してexcel形式に変換
 
 xbrl_d2v_ft__sdv.py
 
