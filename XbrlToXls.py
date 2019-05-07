@@ -62,14 +62,15 @@ def get_label1(link_item):
     ns= root.nsmap    
     ns['xml']='http://www.w3.org/XML/1998/namespace'    
     for link_label in labels.findall('.//link:label',ns) :        
-        link_dict['lab_type'].append(link_label.attrib['{'+ns['xlink']+'}type'])
-        link_dict['label'].append(link_label.attrib['{'+ns['xlink']+'}label'])
-        link_dict['role'].append(link_label.attrib['{'+ns['xlink']+'}role'])
-        link_dict['lang'].append(link_label.attrib['{'+ns['xml']+'}lang'])
-        element_id=link_label.attrib['id'].replace('label_',prefix)
-        link_dict['element_id'].append(element_id)
-        link_dict['lab_name']=link_label.attrib['id']
-        link_dict['label_string'].append(link_label.text)        
+        if 'id' in link_label.attrib:            
+            link_dict['lab_type'].append(link_label.attrib['{'+ns['xlink']+'}type'])
+            link_dict['label'].append(link_label.attrib['{'+ns['xlink']+'}label'])
+            link_dict['role'].append(link_label.attrib['{'+ns['xlink']+'}role'])
+            link_dict['lang'].append(link_label.attrib['{'+ns['xml']+'}lang'])
+            element_id=link_label.attrib['id'].replace('label_',prefix)
+            link_dict['element_id'].append(element_id)
+            link_dict['lab_name']=link_label.attrib['id']
+            link_dict['label_string'].append(link_label.text)   
     return pd.DataFrame(link_dict)
 def parse_companyxml(company_file) :   
     label_dict = defaultdict(list)
@@ -83,14 +84,15 @@ def parse_companyxml(company_file) :
                 os.path.basename(company_file)[20:30]+'_'
         #print(prefix) #jpcrp030000-asr_E01737-000_
         for label_node in labels.findall('.//link:label',ns):            
-            element_id=label_node.attrib['id'].replace('label_',prefix)
-            label_dict['lab_type'].append(label_node.attrib['{'+ns['xlink']+'}type'])
-            label_dict['label'].append(label_node.attrib['{'+ns['xlink']+'}label'])
-            label_dict['role'].append(label_node.attrib['{'+ns['xlink']+'}role'])
-            label_dict['lang'].append(label_node.attrib['{'+ns['xml']+'}lang'])
-            label_dict['element_id'].append( element_id )
-            label_dict['lab_name']=label_node.attrib['id']
-            label_dict['label_string'].append( label_node.text)            
+            if 'id' in label_node.attrib:             
+                element_id=label_node.attrib['id'].replace('label_',prefix)
+                label_dict['lab_type'].append(label_node.attrib['{'+ns['xlink']+'}type'])
+                label_dict['label'].append(label_node.attrib['{'+ns['xlink']+'}label'])
+                label_dict['role'].append(label_node.attrib['{'+ns['xlink']+'}role'])
+                label_dict['lang'].append(label_node.attrib['{'+ns['xml']+'}lang'])
+                label_dict['element_id'].append( element_id )
+                label_dict['lab_name']=label_node.attrib['id']
+            label_dict['label_string'].append( label_node.text)       
     return pd.DataFrame(label_dict)        
 
 def parse_facts(fxbrl):   
