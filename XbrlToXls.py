@@ -108,7 +108,7 @@ def parse_facts(fxbrl):
     classif:用途　区分       
     """
     facts_dict = defaultdict(list)    
-    ET_xbrl=ET.parse(fxbrl)
+    ET_xbrl=ET.parse(fxbrl) #XMLSyntax error対策
     root=ET_xbrl.getroot()
     nslist=[ i+':*' for i in root.nsmap ]
     #print(nslist)
