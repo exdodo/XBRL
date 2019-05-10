@@ -53,9 +53,7 @@ def get_label1(link_item):
     # get common taxonomy from link_base
     link_dict = defaultdict(list)
     #link_base file名から頭文字を抽出 element_id接頭語決定
-    index=os.path.basename(link_item).find('_')
-    prefix=os.path.basename(link_item)[0:index]+'_cor_'
-    
+    prefix=os.path.basename(link_item)[0:6]+'cor_'
     #print(prefix)
     #https://stackoverflow.com/questions/10457564/error-failed-to-load-external-entity-when-using-python-lxml
     parser = ET.XMLParser(recover=True)
@@ -64,15 +62,14 @@ def get_label1(link_item):
     ns= root.nsmap    
     ns['xml']='http://www.w3.org/XML/1998/namespace'    
     for link_label in labels.findall('.//link:label',ns) :        
-        if 'id' in link_label.attrib:            
-            link_dict['lab_type'].append(link_label.attrib['{'+ns['xlink']+'}type'])
-            link_dict['label'].append(link_label.attrib['{'+ns['xlink']+'}label'])
-            link_dict['role'].append(link_label.attrib['{'+ns['xlink']+'}role'])
-            link_dict['lang'].append(link_label.attrib['{'+ns['xml']+'}lang'])
-            element_id=link_label.attrib['id'].replace('label_',prefix)
-            link_dict['element_id'].append(element_id)
-            link_dict['lab_name']=link_label.attrib['id']
-            link_dict['label_string'].append(link_label.text)   
+        link_dict['lab_type'].append(link_label.attrib['{'+ns['xlink']+'}type'])
+        link_dict['label'].append(link_label.attrib['{'+ns['xlink']+'}label'])
+        link_dict['role'].append(link_label.attrib['{'+ns['xlink']+'}role'])
+        link_dict['lang'].append(link_label.attrib['{'+ns['xml']+'}lang'])
+        element_id=link_label.attrib['id'].replace('label_',prefix)
+        link_dict['element_id'].append(element_id)
+        link_dict['lab_name']=link_label.attrib['id']
+        link_dict['label_string'].append(link_label.text)        
     return pd.DataFrame(link_dict)
 def parse_companyxml(company_file) :   
     label_dict = defaultdict(list)
@@ -86,15 +83,14 @@ def parse_companyxml(company_file) :
                 os.path.basename(company_file)[20:30]+'_'
         #print(prefix) #jpcrp030000-asr_E01737-000_
         for label_node in labels.findall('.//link:label',ns):            
-            if 'id' in label_node.attrib:             
-                element_id=label_node.attrib['id'].replace('label_',prefix)
-                label_dict['lab_type'].append(label_node.attrib['{'+ns['xlink']+'}type'])
-                label_dict['label'].append(label_node.attrib['{'+ns['xlink']+'}label'])
-                label_dict['role'].append(label_node.attrib['{'+ns['xlink']+'}role'])
-                label_dict['lang'].append(label_node.attrib['{'+ns['xml']+'}lang'])
-                label_dict['element_id'].append( element_id )
-                label_dict['lab_name']=label_node.attrib['id']
-            label_dict['label_string'].append( label_node.text)       
+            element_id=label_node.attrib['id'].replace('label_',prefix)
+            label_dict['lab_type'].append(label_node.attrib['{'+ns['xlink']+'}type'])
+            label_dict['label'].append(label_node.attrib['{'+ns['xlink']+'}label'])
+            label_dict['role'].append(label_node.attrib['{'+ns['xlink']+'}role'])
+            label_dict['lang'].append(label_node.attrib['{'+ns['xml']+'}lang'])
+            label_dict['element_id'].append( element_id )
+            label_dict['lab_name']=label_node.attrib['id']
+            label_dict['label_string'].append( label_node.text)            
     return pd.DataFrame(label_dict)        
 
 def parse_facts(fxbrl):   
@@ -108,7 +104,7 @@ def parse_facts(fxbrl):
     classif:用途　区分       
     """
     facts_dict = defaultdict(list)    
-    ET_xbrl=ET.parse(fxbrl) #XMLSyntax error対策
+    ET_xbrl=ET.parse(fxbrl)
     root=ET_xbrl.getroot()
     nslist=[ i+':*' for i in root.nsmap ]
     #print(nslist)
@@ -211,50 +207,26 @@ def seek_from_docID(save_path,docIDs):
         dirls.append(file_dir)
     return dirls
 def ToExcel_finace_sheets(df_fs,filename) :
-    # 財務情報以外削除
-    #df_fs = df_fs.dropna(axis=0, subset=['element_id'])  # element_id空白削除
-    #df_fs = df_fs.dropna(axis=0, subset=['amount'])  # amount空白削除
-    #df_fs = df_fs.dropna(axis=0, subset=['label_string'])  # label_string空白削除
-    #df_fs = df_fs[(df_fs['context_ref'] == 'CurrentYearInstant') | (df_fs['context_ref'] == 'CurrentYearDuration')]
     df_fs=df_fs[df_fs['context_ref'].str.contains('Current')]
-    #df_fs.to_excel('df_fs.xls',encoding='cp938')
-    
     #財務諸表 list作成
-    ls=df_fs['rol_label'].values.tolist()
+    ls=df_fs['role_id'].values.tolist()
     rols=list(set(ls))
     #print(rols)    
     with pd.ExcelWriter(mandatory_year(filename) + '_' + edinet_code(filename) + '.xlsx') as writer:
         for rol in rols:
             df_name='df_'+rol
-            df_name = df_fs[df_fs['rol_label'] == rol]
-            df_name=df_name[['role_label_string', 'label_string', 'amount','context_ref']]
-            #print(df_name[['role_label_string', 'label_string', 'amount']])
-            df_name.to_excel(writer, sheet_name=rol)
+            df_name = df_fs[df_fs['role_id'] == rol]
+            df_name=df_name.sort_values(['from_element_id','order'])
+            df_name=df_name[['from_string', 'label_string', 'amount','context_ref']]            
+            df_name.to_excel(writer, sheet_name=rol[4:34]) #Title 31文字以内
     
 def add_role_label(df,df_label) : #from_elemetid to role_label
-    '''
-     from_element_id role_idからrole_label作成
-    '''
+    df_label=df_label[['element_id','label_string']]
     df_label=df_label.set_index('element_id')
-    df['order'].astype(float)#order 文字列To数値
-    df=df.dropna(axis=0, subset=['role_id'])  #role_id空白行削除
-    role_ls=unique_element(df,'role_id') #各種財務諸表のリスト
-    df_fs= pd.DataFrame(index=[], columns=[])
-    for role in role_ls :
-        f_label=elementToLabel(role,df_label)
-        dfdum=df            
-        dfdum=dfdum[dfdum['role_id'] .str.contains( role.replace('rol_',''))] 
-        dfdum=dfdum.drop_duplicates()
-        from_ls=unique_element(dfdum,'from_element_id')
-        for from_item in from_ls :            
-            from_label=elementToLabel(from_item,df_label)            
-            df_1=dfdum[dfdum['from_element_id']==from_item]
-            df_1=df_1.assign (rol_label=f_label)
-            df_1=df_1.assign(role_label_string=from_label)
-            df_1.sort_values('order')
-            df_fs=df_fs.append(df_1)
-    return df_fs
-
+    dic_label=df_label.to_dict()
+    df['from_string']=df['from_element_id'].map(dic_label['label_string'])
+    df['to_string']=df['to_element_id'].map(dic_label['label_string'])
+    return df
 def unique_element(df,ele):
     df=df.drop_duplicates(subset=ele)
     uq_ls=df[ele].tolist()
@@ -298,8 +270,8 @@ if __name__=='__main__':
     dirls=seek_from_docID(save_path,docIDs)
     for dirt in dirls: 
         for file_name in glob.glob(dirt+'\\*.xbrl') :
-            filenames.append(file_name)#ここにXBRL File 指定
-    xrdlfile=filenames[0]
+            filenames.append(file_name)
+    xrdlfile=filenames[0]#ここにXBRL File 指定
     df_label = pd.DataFrame(index=[], columns=[])
     for link_item in get_label_links(xrdlfile) :
         df_label=df_label.append(get_label1(link_item))
