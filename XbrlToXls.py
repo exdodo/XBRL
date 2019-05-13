@@ -133,59 +133,48 @@ def parse_facts(fxbrl):
 def parse_type(xmlfile):
     """
     return(element_id, label_string, lang, label_role, href)
-    role_id:財務諸表の種類（貸借対照表、損益計算書、キャッシュフローなど)
-    arcrole:
+    element_id:
+    role_id
     order:要素の順番
-    closed:
-    usable:
-    context_element:
-    preferred_label:
     fromElementalID:親要素名
     toElementalID:子要素名
     """
-    type_dict = defaultdict(list)
+    type_dict_loc = defaultdict(list)
+    type_dict_arc = defaultdict(list)
     types = ET.parse(xmlfile)
     root=types.getroot()
     ns=root.nsmap
-    for type_link_node in types.findall('.//link:presentationLink',namespaces=ns):
-        for type_arc_node in type_link_node.findall('.//link:presentationArc',namespaces=ns):
-            type_arc_from = type_arc_node.attrib['{'+ns['xlink']+'}from']
-            type_arc_to = type_arc_node.attrib['{'+ns['xlink']+'}to']
-
-            matches = 0
-            for loc_node in type_link_node.findall('.//link:loc',namespaces=ns):
-                loc_label = loc_node.attrib['{'+ns['xlink']+'}label']
-
-                if loc_label == type_arc_from:
-                    if '{'+ns['xlink']+'}href' in loc_node.attrib.keys():
-                        href_str = loc_node.attrib['{'+ns['xlink']+'}href']
-                        type_dict['from_href'].append( href_str )
-                        type_dict['from_element_id'].append( href_str.split('#')[1] )
-                        matches += 1
-                elif loc_label == type_arc_to:
-                    if '{'+ns['xlink']+'}href' in loc_node.attrib.keys():
-                        href_str = loc_node.attrib['{'+ns['xlink']+'}href']
-                        type_dict['to_href'].append( href_str )
-                        type_dict['to_element_id'].append( href_str.split('#')[1] )
-                        type_dict['element_id'].append( href_str.split('#')[1] )
-                        matches += 1                    
-                if matches==2: break
-
-            role_id = type_link_node.attrib['{'+ns['xlink']+'}role']
-            arcrole = type_arc_node.attrib['{'+ns['xlink']+'}arcrole']
-            order = get_xml_attrib_value(type_arc_node, 'order')
-            closed = get_xml_attrib_value(type_arc_node, 'closed')
-            usable = get_xml_attrib_value(type_arc_node, 'usable')
-            context_element = get_xml_attrib_value(type_arc_node, 'contextElement')
-            preferred_label = get_xml_attrib_value(type_arc_node, 'preferredLabel')
-            type_dict['role_id'].append( role_id.split('/')[-1] )
-            type_dict['arcrole'].append( arcrole )
-            type_dict['order'].append( order )
-            type_dict['closed'].append( closed )
-            type_dict['usable'].append( usable )                
-            type_dict['context_element'].append( context_element )
-            type_dict['preferred_label'].append( preferred_label )    
-    return pd.DataFrame( type_dict )#result['types']
+    serial_num=0
+    for child in types.findall('.//link:presentationLink',ns):
+        role_id=child.attrib['{'+ns['xlink']+'}role']                      
+        for grand_child in child.iter() :
+            #if isinstance(grand_child.tag, str):
+            if grand_child.tag== '{http://www.xbrl.org/2003/linkbase}loc':
+                type_dict_loc['role_id'].append(role_id.split('/')[-1])
+                #type_dict_loc['tag_name'].append(['{'+ns['xlink']+'}type'])
+                type_dict_loc['type_label'].append(grand_child.attrib['{'+ns['xlink']+'}label'])                    
+                href_str=grand_child.attrib['{'+ns['xlink']+'}href']
+                href_str=href_str.split('#')[1]
+                #if href_str[-2]=='_': #末尾の数字一桁を外す
+                #    href_str=href_str[:-2]
+                #type_dict_loc['element_id'].append(href_str)
+                prefix=href_str.rsplit('_',1)[0]+'_'                      
+                type_dict_loc['prefix'].append(prefix)
+                type_dict_loc['serial_num'].append(serial_num)
+            if grand_child.tag== '{http://www.xbrl.org/2003/linkbase}presentationArc':
+                #type_dict_arc['tag_name'].append(['{'+ns['xlink']+'}arc'])
+                type_dict_arc['from_element_id'].append(grand_child.attrib['{'+ns['xlink']+'}from'])
+                type_dict_arc['to_element_id'].append(grand_child.attrib['{'+ns['xlink']+'}to'])
+                type_dict_arc['order'].append(grand_child.attrib['order'])
+                type_dict_arc['serial_num'].append(serial_num)
+                serial_num+=1
+    #複数のlink:locへ presentationArcまとめる
+    df_loc=pd.DataFrame(type_dict_loc)
+    df_arc=pd.DataFrame(type_dict_arc)
+    df_type=pd.merge(df_loc,df_arc,on=['serial_num'],how='inner')
+    df_type['element_id']=df_type['prefix']+df_type['type_label']
+    df_type=df_type.drop(columns=['serial_num','prefix','type_label'] )      
+    return df_type
 
 def get_xml_attrib_value( node, attrib):
     if attrib in node.attrib.keys():
