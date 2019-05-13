@@ -16,8 +16,9 @@ XbrlToXls.py:
 
 XBRLをエクセル型式へ
 docIDsからXBRLを探してexcel形式に変換。
-有価証券報告書以外の書類もdf_mergeの形で取り込めるので今後は応用を考えていこう
-presentation_linkの解釈に誤りがあり、訂正方法考え中
+IFRS形式で提出者している企業の連結情報がとれないので調べてみたら、仕様が糞だった。
+参考URL：https://blog.boost-up.net/
+財務分析には使えんな。自然言語解析の勉強用にxbrlは使おう
 
 xbrl_d2v_ft__sdv.py
 
