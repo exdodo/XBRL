@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu May 16 10:23:34 2019
-’ˆÓF‰ß‹Ž‚T”N•ª‚ÌEDINETƒtƒ@ƒCƒ‹î•ñ‚Í‚R‚O–œˆÈã‚ ‚è—L‰¿ØŒ”•ñ‘‚¾‚¯‚Å1TB‚É”—‚è‚Ü‚·
+æ³¨æ„ï¼šéŽåŽ»ï¼•å¹´åˆ†ã®EDINETãƒ•ã‚¡ã‚¤ãƒ«æƒ…å ±ã¯ï¼“ï¼ä¸‡ä»¥ä¸Šã‚ã‚Šæœ‰ä¾¡è¨¼åˆ¸å ±å‘Šæ›¸ã ã‘ã§1TBã«è¿«ã‚Šã¾ã™
 @author: Yusuke
 """
 
@@ -14,16 +14,16 @@ Created on Tue May 14 07:33:55 2019
 import pandas as pd
 import urllib3
 from urllib3.exceptions import InsecureRequestWarning
-urllib3.disable_warnings(InsecureRequestWarning) #verify=False‘Îô
+urllib3.disable_warnings(InsecureRequestWarning) #verify=Falseå¯¾ç­–
 import unicodedata
-from edinet_jsons import main_jsons
+from EDINET_API import main_jsons
 from select_docIDs_freeword import colunm_shape,display_From_docIDS,get_xbrl_from_docIDs
 
 def select_docIDs_docType(df,dict_cond) :
     docIDs=[]
     df_focus=df              
     for type_key,cond_value in dict_cond.items() :
-        if cond_value.isdigit() : #”’l‚Í”¼Šp•¶Žš—ñ‚É‚·‚é
+        if cond_value.isdigit() : #æ•°å€¤ã¯åŠè§’æ–‡å­—åˆ—ã«ã™ã‚‹
             cond_value= unicodedata.normalize("NFKC", cond_value)        
         df_focus=df_focus[df_focus[type_key]==cond_value]
     if len(df_focus['docID'].to_list())>0 : 
@@ -32,50 +32,51 @@ def select_docIDs_docType(df,dict_cond) :
     unique_docs=list(set(flat_docs))
     return unique_docs
 if __name__=='__main__':
-    #---‰ß‹Ž‚T”N•ª‚ÌEDINETƒtƒ@ƒCƒ‹î•ñ‚Í‚R‚O–œˆÈã‚ ‚è—L‰¿ØŒ”•ñ‘‚¾‚¯‚Å1TB‚É”—‚è‚Ü‚·----
-    #--DISK—e—Ê‚ª\•ª‚É‚ ‚é‚©ƒ_ƒEƒ“ƒ[ƒh‘ÎÛ‚ÌdocIDs‚ði‚ç‚È‚¢‚ÆƒVƒXƒeƒ€‚É[‚È‰e‹¿‚ð—^‚¦‚Ü‚·--
-    save_path='d:\\data\\xbrl\\temp' #xbrl file•Û‘¶æ‚ÌŠîŠ²ƒtƒHƒ‹ƒ_[
-    #dict_cond={'formCode':'030000', 'ordinanceCode':'10'}@#'030000':”NŽŸ—L‰¿ØŒ”•ñ‘
+    #---éŽåŽ»ï¼•å¹´åˆ†ã®EDINETãƒ•ã‚¡ã‚¤ãƒ«æƒ…å ±ã¯ï¼“ï¼ä¸‡ä»¥ä¸Šã‚ã‚Šæœ‰ä¾¡è¨¼åˆ¸å ±å‘Šæ›¸ã ã‘ã§1TBã«è¿«ã‚Šã¾ã™----
+    #--DISKå®¹é‡ãŒååˆ†ã«ã‚ã‚‹ã‹ãƒ€ã‚¦ãƒ³ãƒ­ãƒ¼ãƒ‰å¯¾è±¡ã®docIDsã‚’çµžã‚‰ãªã„ã¨ã‚·ã‚¹ãƒ†ãƒ ã«æ·±åˆ»ãªå½±éŸ¿ã‚’ä¸Žãˆã¾ã™--
+    save_path='d:\\data\\xbrl\\temp' #xbrl fileä¿å­˜å…ˆã®åŸºå¹¹ãƒ•ã‚©ãƒ«ãƒ€ãƒ¼
+    #dict_cond={'formCode':'030000', 'ordinanceCode':'10'}ã€€#'030000':å¹´æ¬¡æœ‰ä¾¡è¨¼åˆ¸å ±å‘Šæ›¸
     dict_cond={'secCode':'6501'}       
-    nYears=[2018,2018] #ŠúŠÔŽw’è@”N@ˆÈãˆÈ“à      
-    main_jsons() #‘O“ú‚Ü‚Å’ño‘—Þˆê——‚ðŽæ“¾  
-    df=pd.read_json('xbrldocs.json',dtype='object') #5”N•ª–ñ30–œs
-    df = colunm_shape(df) #dataframe‚ð„È
+    nYears=[2018,2018] #æœŸé–“æŒ‡å®šã€€å¹´ã€€ä»¥ä¸Šä»¥å†…      
+    main_jsons() #å‰æ—¥ã¾ã§æå‡ºæ›¸é¡žä¸€è¦§ã‚’å–å¾—  
+    df=pd.read_json('xbrldocs.json',dtype='object') #5å¹´åˆ†ç´„30ä¸‡è¡Œ
+    df = colunm_shape(df) #dataframeã‚’æŽ¨æ•²
     df=df[(df['dtDateTime'].dt.year >= min(nYears)) 
             & (df['dtDateTime'].dt.year <= max(nYears))]    
-    docIDs=select_docIDs_docType(df,dict_cond) 
-    display_From_docIDS(docIDs,df)#Žæ“¾docIDsî•ñ•\Ž¦
-    print('docIDs‚ª '+str(len(docIDs))+' ŒŒ©‚Â‚©‚è‚Ü‚µ‚½B')
-    ans = input("ƒ_ƒEƒ“ƒ[ƒh‚µ‚Ä‚æ‚ë‚µ‚¢‚Å‚·‚©(y/n)")
+    docIDs=select_docIDs_docType(df,dict_cond)
+    print('docIDsãŒ '+str(len(docIDs))+' ä»¶è¦‹ã¤ã‹ã‚Šã¾ã—ãŸã€‚')
+    ans = input("ãƒ€ã‚¦ãƒ³ãƒ­ãƒ¼ãƒ‰ã—ã¦ã‚ˆã‚ã—ã„ã§ã™ã‹(y/n)")
     if ans == "y":
-        get_xbrl_from_docIDs(df,save_path,docIDs)
+        get_xbrl_from_docIDs(df,save_path,docIDs)    
+    #get_xbrl_from_docIDs(df,save_path,docIDs)
+    #display_From_docIDS(docIDs,df)#å–å¾—docIDsæƒ…å ±è¡¨ç¤º
     '''
-    ‘—Þˆê——€–Ú{'JCN':'’ñoŽÒ–@l”Ô†', 'attachDocFlag':'‘ã‘Ö‘–ÊE“Y•t•¶‘—L–³ƒtƒ‰ƒO', 
-     'currentReportReason':'—Õ•ñ’ñoŽ–—R', 'disclosureStatus':'ŠJŽ¦•sŠJŽ¦‹æ•ª',
-       'docDescription':'’ño‘—ÞŠT—v', 'docID':'‘—ÞŠÇ—”Ô†', 
-       'docInfoEditStatus':'‘—Þî•ñC³‹æ•ª', 'docTypeCode':'‘—ÞŽí•ÊƒR[ƒh',
-       'edinetCode':'’ñoŽÒEDINETƒR[ƒh', 'englishDocFlag':'‰p•¶ƒtƒ@ƒCƒ‹—L–³ƒtƒ‰ƒO',
-       'filerName':'’ñoŽÒ–¼', 'formCode':'—lŽ®ƒR[ƒh', 'fundCode':'ƒtƒ@ƒ“ƒhƒR[ƒh',
-       'issuerEdinetCode':'”­s‰ïŽÐEDINETƒR[ƒh', 'opeDateTime':'‘€ì“úŽž',
-       'ordinanceCode':'•{—ßƒR[ƒh', 'parentDocID':'e‘—ÞŠÇ—”Ô†','pdfFlag':'PDF—L–³ƒtƒ‰ƒO', 
-       'periodEnd':'ŠúŠÔiŽŠj', 'periodStart':'ŠúŠÔiŽ©j', 
-       'secCode':'’ñoŽÒØŒ”ƒR[ƒh', 'seqNumber':'˜A”Ô','subjectEdinetCode':'‘ÎÛEDINETƒR[ƒh', 
-       'submitDateTime':'’ño“úŽž', 'subsidiaryEdinetCode':'Žq‰ïŽÐEDINETƒR[ƒh',
-       'withdrawalStatus':'Žæ‰º‹æ•ª', 'xbrlFlag':'XBRL—L–³ƒtƒ‰ƒO'}
-    '‘—ÞŽí•ÊƒR[ƒh'{10:'—L‰¿ØŒ”’Ê’m‘',20:'•ÏX’Ê’m‘i—L‰¿ØŒ”’Ê’m‘j',30:'—L‰¿ØŒ”“Ío‘', 
-     40:'’ù³—L‰¿ØŒ”“Ío‘',50:'“Ío‚ÌŽæ‰º‚°Šè‚¢',60:'”­s“o˜^’Ê’m‘', 
-     70:'•ÏX’Ê’m‘i”­s“o˜^’Ê’m‘j',80:'”­s“o˜^‘',90:'’ù³”­s“o˜^‘', 
-     100:'”­s“o˜^’Ç•â‘—Þ',110:'”­s“o˜^Žæ‰º“Ío‘',120:'—L‰¿ØŒ”•ñ‘', 
-     130:'’ù³—L‰¿ØŒ”•ñ‘',135:'Šm”F‘',136:'’ù³Šm”F‘',140:'Žl”¼Šú•ñ‘', 
-     150:'’ù³Žl”¼Šú•ñ‘',160:'”¼Šú•ñ‘',170:'’ù³”¼Šú•ñ‘',180:'—ÕŽž•ñ‘', 
-     190:'’ù³—ÕŽž•ñ‘',200:'e‰ïŽÐ“™ó‹µ•ñ‘',210:'’ù³e‰ïŽÐ“™ó‹µ•ñ‘', 
-     220:'Ž©ŒÈŠ”Œ””ƒ•tó‹µ•ñ‘',230:'’ù³Ž©ŒÈŠ”Œ””ƒ•tó‹µ•ñ‘', 
-     235:'“à•”“§•ñ‘',236:'’ù³“à•”“§•ñ‘',240:'ŒöŠJ”ƒ•t“Ío‘', 
-     250:'’ù³ŒöŠJ”ƒ•t“Ío‘',260:'ŒöŠJ”ƒ•t“P‰ñ“Ío‘',270:'ŒöŠJ”ƒ•t•ñ‘', 
-     280:'’ù³ŒöŠJ”ƒ•t•ñ‘',290:'ˆÓŒ©•\–¾•ñ‘',300:'’ù³ˆÓŒ©•\–¾•ñ‘', 
-     310:'‘ÎŽ¿–â‰ñ“š•ñ‘',320:'’ù³‘ÎŽ¿–â‰ñ“š•ñ‘',330:'•Ê“r”ƒ•t‚¯‹ÖŽ~‚Ì“Á—á‚ðŽó‚¯‚é‚½‚ß‚Ì\o‘', 
-     340:'’ù³•Ê“r”ƒ•t‚¯‹ÖŽ~‚Ì“Á—á‚ðŽó‚¯‚é‚½‚ß‚Ì\o‘', 
-     350:'‘å—Ê•Û—L•ñ‘',360:'’ù³‘å—Ê•Û—L•ñ‘',370:'Šî€“ú‚Ì“Ío‘',380:'•ÏX‚Ì“Ío‘'}
+    æ›¸é¡žä¸€è¦§é …ç›®{'JCN':'æå‡ºè€…æ³•äººç•ªå·', 'attachDocFlag':'ä»£æ›¿æ›¸é¢ãƒ»æ·»ä»˜æ–‡æ›¸æœ‰ç„¡ãƒ•ãƒ©ã‚°', 
+     'currentReportReason':'è‡¨å ±æå‡ºäº‹ç”±', 'disclosureStatus':'é–‹ç¤ºä¸é–‹ç¤ºåŒºåˆ†',
+       'docDescription':'æå‡ºæ›¸é¡žæ¦‚è¦', 'docID':'æ›¸é¡žç®¡ç†ç•ªå·', 
+       'docInfoEditStatus':'æ›¸é¡žæƒ…å ±ä¿®æ­£åŒºåˆ†', 'docTypeCode':'æ›¸é¡žç¨®åˆ¥ã‚³ãƒ¼ãƒ‰',
+       'edinetCode':'æå‡ºè€…EDINETã‚³ãƒ¼ãƒ‰', 'englishDocFlag':'è‹±æ–‡ãƒ•ã‚¡ã‚¤ãƒ«æœ‰ç„¡ãƒ•ãƒ©ã‚°',
+       'filerName':'æå‡ºè€…å', 'formCode':'æ§˜å¼ã‚³ãƒ¼ãƒ‰', 'fundCode':'ãƒ•ã‚¡ãƒ³ãƒ‰ã‚³ãƒ¼ãƒ‰',
+       'issuerEdinetCode':'ç™ºè¡Œä¼šç¤¾EDINETã‚³ãƒ¼ãƒ‰', 'opeDateTime':'æ“ä½œæ—¥æ™‚',
+       'ordinanceCode':'åºœä»¤ã‚³ãƒ¼ãƒ‰', 'parentDocID':'è¦ªæ›¸é¡žç®¡ç†ç•ªå·','pdfFlag':'PDFæœ‰ç„¡ãƒ•ãƒ©ã‚°', 
+       'periodEnd':'æœŸé–“ï¼ˆè‡³ï¼‰', 'periodStart':'æœŸé–“ï¼ˆè‡ªï¼‰', 
+       'secCode':'æå‡ºè€…è¨¼åˆ¸ã‚³ãƒ¼ãƒ‰', 'seqNumber':'é€£ç•ª','subjectEdinetCode':'å¯¾è±¡EDINETã‚³ãƒ¼ãƒ‰', 
+       'submitDateTime':'æå‡ºæ—¥æ™‚', 'subsidiaryEdinetCode':'å­ä¼šç¤¾EDINETã‚³ãƒ¼ãƒ‰',
+       'withdrawalStatus':'å–ä¸‹åŒºåˆ†', 'xbrlFlag':'XBRLæœ‰ç„¡ãƒ•ãƒ©ã‚°'}
+    'æ›¸é¡žç¨®åˆ¥ã‚³ãƒ¼ãƒ‰'{10:'æœ‰ä¾¡è¨¼åˆ¸é€šçŸ¥æ›¸',20:'å¤‰æ›´é€šçŸ¥æ›¸ï¼ˆæœ‰ä¾¡è¨¼åˆ¸é€šçŸ¥æ›¸ï¼‰',30:'æœ‰ä¾¡è¨¼åˆ¸å±Šå‡ºæ›¸', 
+     40:'è¨‚æ­£æœ‰ä¾¡è¨¼åˆ¸å±Šå‡ºæ›¸',50:'å±Šå‡ºã®å–ä¸‹ã’é¡˜ã„',60:'ç™ºè¡Œç™»éŒ²é€šçŸ¥æ›¸', 
+     70:'å¤‰æ›´é€šçŸ¥æ›¸ï¼ˆç™ºè¡Œç™»éŒ²é€šçŸ¥æ›¸ï¼‰',80:'ç™ºè¡Œç™»éŒ²æ›¸',90:'è¨‚æ­£ç™ºè¡Œç™»éŒ²æ›¸', 
+     100:'ç™ºè¡Œç™»éŒ²è¿½è£œæ›¸é¡ž',110:'ç™ºè¡Œç™»éŒ²å–ä¸‹å±Šå‡ºæ›¸',120:'æœ‰ä¾¡è¨¼åˆ¸å ±å‘Šæ›¸', 
+     130:'è¨‚æ­£æœ‰ä¾¡è¨¼åˆ¸å ±å‘Šæ›¸',135:'ç¢ºèªæ›¸',136:'è¨‚æ­£ç¢ºèªæ›¸',140:'å››åŠæœŸå ±å‘Šæ›¸', 
+     150:'è¨‚æ­£å››åŠæœŸå ±å‘Šæ›¸',160:'åŠæœŸå ±å‘Šæ›¸',170:'è¨‚æ­£åŠæœŸå ±å‘Šæ›¸',180:'è‡¨æ™‚å ±å‘Šæ›¸', 
+     190:'è¨‚æ­£è‡¨æ™‚å ±å‘Šæ›¸',200:'è¦ªä¼šç¤¾ç­‰çŠ¶æ³å ±å‘Šæ›¸',210:'è¨‚æ­£è¦ªä¼šç¤¾ç­‰çŠ¶æ³å ±å‘Šæ›¸', 
+     220:'è‡ªå·±æ ªåˆ¸è²·ä»˜çŠ¶æ³å ±å‘Šæ›¸',230:'è¨‚æ­£è‡ªå·±æ ªåˆ¸è²·ä»˜çŠ¶æ³å ±å‘Šæ›¸', 
+     235:'å†…éƒ¨çµ±åˆ¶å ±å‘Šæ›¸',236:'è¨‚æ­£å†…éƒ¨çµ±åˆ¶å ±å‘Šæ›¸',240:'å…¬é–‹è²·ä»˜å±Šå‡ºæ›¸', 
+     250:'è¨‚æ­£å…¬é–‹è²·ä»˜å±Šå‡ºæ›¸',260:'å…¬é–‹è²·ä»˜æ’¤å›žå±Šå‡ºæ›¸',270:'å…¬é–‹è²·ä»˜å ±å‘Šæ›¸', 
+     280:'è¨‚æ­£å…¬é–‹è²·ä»˜å ±å‘Šæ›¸',290:'æ„è¦‹è¡¨æ˜Žå ±å‘Šæ›¸',300:'è¨‚æ­£æ„è¦‹è¡¨æ˜Žå ±å‘Šæ›¸', 
+     310:'å¯¾è³ªå•å›žç­”å ±å‘Šæ›¸',320:'è¨‚æ­£å¯¾è³ªå•å›žç­”å ±å‘Šæ›¸',330:'åˆ¥é€”è²·ä»˜ã‘ç¦æ­¢ã®ç‰¹ä¾‹ã‚’å—ã‘ã‚‹ãŸã‚ã®ç”³å‡ºæ›¸', 
+     340:'è¨‚æ­£åˆ¥é€”è²·ä»˜ã‘ç¦æ­¢ã®ç‰¹ä¾‹ã‚’å—ã‘ã‚‹ãŸã‚ã®ç”³å‡ºæ›¸', 
+     350:'å¤§é‡ä¿æœ‰å ±å‘Šæ›¸',360:'è¨‚æ­£å¤§é‡ä¿æœ‰å ±å‘Šæ›¸',370:'åŸºæº–æ—¥ã®å±Šå‡ºæ›¸',380:'å¤‰æ›´ã®å±Šå‡ºæ›¸'}
     #docIDs=['S100DJ2G',]#['S100DAZ4']  
     '''
     

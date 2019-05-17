@@ -1,12 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Apr  2 07:39:42 2019
-注意：過去５年分のEDINETファイル情報は３０万以上あり有価証券報告書だけで1TBに迫ります
-DISK容量が十分にあるかダウンロード対象のdocIDsを絞らないとシステムに深刻な影響を与えます
-参考URL
-https://qiita.com/simonritchie/items/dd737a52cf32b662675c
-https://kunai-lab.hatenablog.jp/entry/2018/04/08/134924
-https://blog.statsbeginner.net/entry/2017/05/08/072357
+Created on Tue May 14 07:33:55 2019
+https://cortyuming.hateblo.jp/entry/2015/12/26/085736
 @author: Yusuke
 """
 import pandas as pd
@@ -15,79 +10,12 @@ import urllib3
 from urllib3.exceptions import InsecureRequestWarning
 urllib3.disable_warnings(InsecureRequestWarning) #verify=False対策
 from time import sleep
+from EDINET_API import main_jsons
 import zipfile
 import io
+from tqdm import tqdm
 import os
 import unicodedata
-
-def get_xbrl_from_docIDs(df_json,save_path,docIDs):
-    '''
-    docIDからXBRLファイルを探す
-    なければ取得する
-    '''     
-    df_json['dtDateTime']=pd.to_datetime(df_json['submitDateTime']) #obj to datetime
-    df_json['dtDate']=df_json['dtDateTime'].dt.date #時刻を丸める　normalize round resample date_range
-    for docID in docIDs:                 
-        #docIDsからdataframe 抽出
-        sDate=df_json[df_json['docID']==docID].submitDateTime.to_list()[0]
-        flag=df_json[df_json['docID']==docID].xbrlFlag.to_list()[0]
-        file_dir=save_path+'\\'+str(int(sDate[0:4]))+'\\'+\
-            str(int(sDate[5:7]))+'\\'+str(int(sDate[8:10]))+'\\'\
-            +docID+'\\'+docID+'\\XBRL\\PublicDoc'
-        if not os.path.isdir(file_dir): #xbrl fileなければ取得
-            if flag=='1' : #xbrl有無flag確認
-                get_xbrl(docID,df_json,save_path) 
-def get_xbrl(docID,df,save_path) :
-    '''
-    指定したpathへsubDateTimeから'\年\月\日\文章コード'のディレクトリーを作成し保存
-    docIDが分かれば保存先も判明    
-    '''
-    #path
-    sDate=df[df['docID']==docID].submitDateTime.to_list()[0]
-    save_path=save_path+'\\'+sDate[0:4]+'\\'+sDate[5:7]+'\\'+sDate[8:10]+'\\'+docID
-    if os.path.isdir(save_path) == True : #過去に読み込んだ事あるか(dirあるか)
-        return
-    #書類取得
-    url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents/'+docID
-    params = { 'type': 1} #1:zip 2 pdf
-    headers = {'User-Agent': 'メールアドレスを入れておく'}
-    res = requests.get(url, params=params,verify=False,timeout=3.5, headers=headers)
-    sleep(1) #1秒間をあける    
-    if 'stream' in res.headers['Content-Type'] :
-        with zipfile.ZipFile(io.BytesIO(res.content)) as existing_zip:        
-            existing_zip.extractall(save_path)
-    elif 'application/json' in res.headers['Content-Type'] :
-        print('error@ : '+docID)
-        print(res.json())        
-    else :
-        print('error : '+docID)
-        print(res.headers)
-
-def largeShare_people(df,nYear=2019):
-    #人名検索　大量保有報告書 提出ランキング
-    #mode_value = df['filerName'].mode()    
-    df=df[df['ordinanceCode']==60.0]  #大量保有報告書  
-    #人名＝8文字未満　会社　abc除外
-    df=df[~df['filerName'].str.contains('会社',na=False)]
-    df['s_len'] = df['filerName'].apply(lambda x: len(str(x).replace(' ', '')))    
-    df=df[df.s_len<8]  #8文字未満のみ選択  
-    #df=df[~df['filerName'].str.contains(u'[ァ-ン]',na=False)]
-    df=df[~df['filerName'].str.contains(u'[Ａ-Ｚ]+',na=False)] #アルファベット削除
-    mode_value= df['filerName'].value_counts()    
-    print(str(nYear)+'年 人名検索　大量保有報告書 提出回数ランキング')
-    print(mode_value)
-
-def select_docIDs(df,seek_words,df_columns) :    
-    docIDs=[]
-    for df_column in df_columns :
-        for seek_word in seek_words :
-            df_contains = df[df[df_column].str.contains(seek_word,na=False)]    
-            df_contains=df_contains.sort_values('submitDateTime')
-            if len(df_contains['docID'].to_list())>0 : 
-                docIDs.append(df_contains['docID'].to_list())
-    flat_docs = [item for sublist in docIDs for item in sublist] #flatten
-    unique_docs=list(set(flat_docs)) #重複削除
-    return unique_docs  
 
 def select_dict_docIDs(df,seek_word):
     #辞書にして抽出
@@ -96,18 +24,49 @@ def select_dict_docIDs(df,seek_word):
     filerName_dict = df.filerName.to_dict()
     #docDescription_dict=df.docDescription.to_dict()    
     #辞書から検索    
-    docIDs = [k for k, v in filerName_dict.items() if v == '--会社名--']
+    docIDs = [k for k, v in filerName_dict.items() if v == seek_word]
     return docIDs
 
-def colunm_shape(df) :
-    df['filerName'] = df['filerName'].astype(str)
-    df['docDescription'] = df['docDescription'].astype(str)
-    df['secCode']= df['secCode'].fillna(0.0)
-    df['secCode'] = df['secCode'].astype(int)
-    df['secCode'] = df['secCode']/10
-    df['secCode'] = df['secCode'].astype(str)
-    return df
+def get_xbrl_from_docIDs(df_json,save_path,docIDs):
+    '''
+    docIDからXBRLファイルを探す
+    なければ取得する
+    '''     
+    df_json['dtDateTime']=pd.to_datetime(df_json['submitDateTime']) #obj to datetime
+    df_json['dtDate']=df_json['dtDateTime'].dt.date #時刻を丸める　normalize round resample date_range
+    #dirls=[]
+    for docID in tqdm(docIDs):                 
+        #docIDsからdataframe 抽出
+        sDate=df_json[df_json['docID']==docID].submitDateTime.to_list()[0]
+        flag=df_json[df_json['docID']==docID].xbrlFlag.to_list()[0]
+        file_dir=save_path+'\\'+str(int(sDate[0:4]))+'\\'+\
+            str(int(sDate[5:7]))+'\\'+str(int(sDate[8:10]))+'\\'\
+            +docID+'\\'+docID+'\\XBRL\\PublicDoc'
+        if not os.path.isdir(file_dir): #xdrl fileなければ取得
+            if flag=='1' : #xbrl有無flag確認
+                get_xbrl(docID,df_json,save_path)            
+        #dirls.append(file_dir)
+    #return dirls
 
+def select_docIDs_freeword(df,seek_words,seek_columns=[]) :
+    '''
+    df:検索対象データーフレーム
+    seek_words:検索用語
+    seek_columns:検索列
+    '''
+    if len(seek_columns)==0 : seek_columns=df.columns
+    docIDs=[]    
+    for col_name in seek_columns :
+        if col_name=='dtDateTime' : continue #object type以外は検索しない
+        if col_name=='dtDate' :  continue    
+        for seek_word in seek_words :            
+            df_contains = df[df[col_name].str.contains(seek_word,na=False)]
+            df_contains = df_contains.sort_values('submitDateTime')
+            if len(df_contains['docID'].to_list())>0 : 
+                docIDs.append(df_contains['docID'].to_list())
+    flat_docs = [item for sublist in docIDs for item in sublist]#flatten
+    unique_docs=list(set(flat_docs))    
+    return unique_docs
 def colunm_shape(df) :
     #submitDateTime 日付型へ
     df['dtDateTime']=pd.to_datetime(df['submitDateTime']) #obj to datetime
@@ -125,8 +84,34 @@ def colunm_shape(df) :
     #docIDだけあり他がｎｕｌｌ（諸般の事情で削除された）が2000近くあるから削除
     df=df.dropna(subset=['submitDateTime'])
     df=df.sort_values('submitDateTime')         
-    return df
-
+    return df   
+def get_xbrl(docID,df,save_path) :
+    '''
+    
+    指定したpathへsubDateTimeから'\年\月\日\文章コード\文章コード'のディレクトリーを作成し保存
+    docIDが分かれば保存先も判明    
+    '''    
+    #path
+    sDate=df[df['docID']==docID].submitDateTime.to_list()[0]
+    save_path=save_path+'\\'+str(int(sDate[0:4]))+'\\'+str(int(sDate[5:7]))+\
+                '\\'+str(int(sDate[8:10]))+'\\'+docID+'\\'+docID
+    if os.path.isdir(save_path) == True : #過去に読み込んだ事あるか(dirあるか)
+        return
+    #書類取得
+    url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents/'+docID
+    params = { 'type': 1} #1:zip 2 pdf
+    headers = {'User-Agent': 'exdodo@gmail.com'}    
+    res = requests.get(url, params=params,verify=False,timeout=3.5, headers=headers)
+    sleep(1) #1秒間をあける    
+    if 'stream' in res.headers['Content-Type'] :
+        with zipfile.ZipFile(io.BytesIO(res.content)) as existing_zip:        
+            existing_zip.extractall(save_path)
+    elif 'application/json' in res.headers['Content-Type'] :
+        print('error@ : '+docID)
+        print(res.json())        
+    else :
+        print('error : '+docID)
+        print(res.headers)
 def display_From_docIDS(docIDs,df) :
     #edinetコード　提出者名辞書作成
     df_edinetCode=pd.read_csv('EdinetcodeDLInfo.csv',header=1,encoding='cp932')
@@ -143,12 +128,16 @@ def display_From_docIDS(docIDs,df) :
     df['docDescription']=df['docDescription'].str[:10]
     df['filerName']=df['filerName'].str[:10]
     print(df[['dtDate','secCode','filerName','docDescription']])
-    
+
+def select_docIDs_docType(df,docType) :
+    docIDs=[] 
+    return docIDs        
+
 if __name__=='__main__':
     #-------------------------------------------------------------------------
     save_path='d:\\data\\xbrl\\temp' #xbrl file保存先の基幹フォルダー
     #save_path='d:\\data\\xbrl\\download\\edinet' #有報キャッチャー自分用      
-    seek_words=['6501',6501,'６５０１','日立製作所'] 
+    seek_words=['6501',6501,'６５０１','日立製作所'] #'030000':年次有価証券報告書
     seek_words=[str(n) for n in seek_words ] #文字列に変換 
     #列指定したいならば書類一覧項目を下記にしるす　なければ[]
     seek_columns=['filerName','secCode','docDescription','subjectEdinetCode']
@@ -162,12 +151,16 @@ if __name__=='__main__':
     df=df[(df['dtDateTime'].dt.year >= min(nYears)) 
             & (df['dtDateTime'].dt.year <= max(nYears))]    
     docIDs=select_docIDs_freeword(df,seek_words,seek_columns)#or検索
-    #---過去５年分のEDINETファイル情報は３０万以上あり有価証券報告書だけで1TBに迫ります----    
-    display_From_docIDS(docIDs,df)#取得docIDs情報表示
+    #---過去５年分のEDINETファイル情報は３０万以上あり有価証券報告書だけで1TBに迫ります----
+    #取得json情報表示（docID・日付・提出者名・書類内容）
+    #display_From_docIDS(docIDs,df)
+    #get_xbrl_from_docIDs(df,save_path,docIDs)    
+    
     print('docIDsが '+str(len(docIDs))+' 件見つかりました。')
     ans = input("ダウンロードしてよろしいですか(y/n)")
     if ans == "y":
-	get_xbrl_from_docIDs(df,save_path,docIDs)
+        get_xbrl_from_docIDs(df,save_path,docIDs)
+    
     '''
     書類一覧項目{'JCN':'提出者法人番号', 'attachDocFlag':'代替書面・添付文書有無フラグ', 
      'currentReportReason':'臨報提出事由', 'disclosureStatus':'開示不開示区分',
@@ -197,3 +190,4 @@ if __name__=='__main__':
      350:'大量保有報告書',360:'訂正大量保有報告書',370:'基準日の届出書',380:'変更の届出書'}
     #docIDs=['S100DJ2G',]#['S100DAZ4']  
     '''
+    
