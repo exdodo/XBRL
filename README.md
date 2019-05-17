@@ -16,7 +16,7 @@ EDINET_APIで作成した'xbrldocs.json'から年次有価証券報告書を一�
 
 XbrlParser.py:
 XBRLをデーターフレームへ。dataframe to xls 制作中。
-IFRS形式で提出者している企業の連結情報がとれないので調べてみたら、仕様が糞だった。
+IFRS形式で提出している企業の連結情報がとれないので調べてみたら、仕様が糞だった。
 参考URL：https://blog.boost-up.net/
 財務分析には使えんな。自然言語解析の勉強用にxbrlは使おう。
 
