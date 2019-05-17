@@ -19,6 +19,7 @@ XbrlParser.py:
 XBRLをデーターフレームへ。dataframe to xls 制作中。
 IFRS形式で提出している企業の連結情報がとれないので調べてみたら、仕様が糞だった。
 参考URL：https://blog.boost-up.net/
+
 https://www.fsa.go.jp/search/20190228.html
 を読むと2019年からはタクソノミが用意されるので開示が義務化されるならいいな
 でも過去に渡って適用してくれないと財務分析には使えんな。
