@@ -100,7 +100,7 @@ def get_xbrl(docID,df,save_path) :
     #書類取得
     url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents/'+docID
     params = { 'type': 1} #1:zip 2 pdf
-    headers = {'User-Agent': 'exdodo@gmail.com'}    
+    headers = {'User-Agent': 'メールアドレス'}    
     res = requests.get(url, params=params,verify=False,timeout=3.5, headers=headers)
     sleep(1) #1秒間をあける    
     if 'stream' in res.headers['Content-Type'] :
