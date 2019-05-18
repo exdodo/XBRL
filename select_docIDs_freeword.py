@@ -86,10 +86,9 @@ def colunm_shape(df) :
     df=df.sort_values('submitDateTime')         
     return df   
 def get_xbrl(docID,df,save_path) :
-    '''
-    
-    指定したpathへsubDateTimeから'\年\月\日\文章コード\文章コード'のディレクトリーを作成し保存
-    docIDが分かれば保存先も判明    
+    '''    
+    #指定したpathへsubDateTimeから'\年\月\日\文章コード\文章コード'のディレクトリーを作成し保存
+    #docIDが分かれば保存先も判明    
     '''    
     #path
     sDate=df[df['docID']==docID].submitDateTime.to_list()[0]
