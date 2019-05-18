@@ -246,7 +246,7 @@ def xbrl_to_dataframe(xbrlfile) :
     if 'from_element_id' in df_xbrl.columns : #日本語ラベル追加
         df_all_label.reset_index(drop=True, inplace=True)
         add_label_string(df_xbrl,df_all_label)
-    df_all_label.to_excel('all_label.xls',encoding='cp938')
+    #df_all_label.to_excel('all_label.xls',encoding='cp938')
     df_xbrl=df_xbrl.dropna(subset=['amount']) #amount空　削除
     return df_xbrl
 
@@ -254,7 +254,7 @@ def merge_df(df_all_label,df_facts,df_type) :
     #マージ 
     df_facts['amount']=df_facts['amount'].str[:3000]
     df_merge=pd.merge(df_all_label,df_facts,on=['element_id'],how='inner') #型作成    
-    df_merge.to_excel('labelfacts.xls',encoding='cp938')    
+    #df_merge.to_excel('labelfacts.xls',encoding='cp938')    
     df_xbrl=pd.merge(df_type,df_merge,on=['element_id'],how='outer') #数値埋め込み
     return df_xbrl 
 def linklog():

@@ -105,3 +105,11 @@ venv.bak/
 datelog.pkl
 xbrldocs.json
 EdinetcodeDlInfo.csv
+test.py
+labelfacts.xls
+linklog.pkl
+label/jpcrp_2018-02-28_lab.json
+label/jpdei_2013-08-31_lab.json
+label/jppfs_2018-02-28_lab.json
+jpcrp030000-asr-001_E01737-000_2018-03-31_01_2018-06-29.xls
+all_label.xls
