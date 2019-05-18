@@ -275,12 +275,7 @@ def add_label_string(df_xbrl,df_label) :
     df_xbrl['to_string']=df_xbrl['to_element_id'].map(dic_label['label_string'])
     return df_xbrl
 def get_xbrl(docID,df,save_path) :
-    '''
-    過去５年分のEDINETファイル情報は３０万以上あり有価証券報告書だけで1TBに迫ります
-    指定したpathへsubDateTimeから'\年\月\日\文章コード\文章コード'のディレクトリーを作成し保存
-    docIDが分かれば保存先も判明    
-    '''
-    #path
+    #path 指定したpathへsubDateTimeから \年\月\日\文章コード\文章コード のディレクトリーを作成し保存
     sDate=df[df['docID']==docID].submitDateTime.to_list()[0]
     save_path=save_path+'\\'+str(int(sDate[0:4]))+'\\'+str(int(sDate[5:7]))+\
                 '\\'+str(int(sDate[8:10]))+'\\'+docID+'\\'+docID
@@ -289,7 +284,7 @@ def get_xbrl(docID,df,save_path) :
     #書類取得
     url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents/'+docID
     params = { 'type': 1} #1:zip 2 pdf
-    #headers = {'User-Agent': 'メールアドレスを入れておく'}
+    headers = {'User-Agent': 'メールアドレスを入れておく'}
     res = requests.get(url, params=params,verify=False,timeout=3.5, headers=headers)
     if 'stream' in res.headers['Content-Type'] :
         with zipfile.ZipFile(io.BytesIO(res.content)) as existing_zip:        
