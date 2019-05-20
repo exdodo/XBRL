@@ -10,7 +10,7 @@ import urllib3
 from urllib3.exceptions import InsecureRequestWarning
 urllib3.disable_warnings(InsecureRequestWarning) #verify=False対策
 from time import sleep
-from edinet_jsons import main_jsons
+from EDINET_API import main_jsons
 import zipfile
 import io
 from tqdm import tqdm

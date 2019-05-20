@@ -37,10 +37,7 @@ from collections import defaultdict
 import re
 import glob
 import pickle
-import zipfile
-import requests
-import io
-
+from select_docIDs_freeword import download_xbrl,column_shape
 def get_label_links(xbrlfile):
     xsd_file = xbrlfile.replace('.xbrl','.xsd')
     labels=ET.parse(xsd_file)
@@ -182,8 +179,16 @@ def parse_type(xmlfile):
     df_loc=pd.DataFrame(type_dict_loc)
     df_arc=pd.DataFrame(type_dict_arc)
     df_type=pd.merge(df_loc,df_arc,on=['serial_num'],how='inner')
-    df_type['element_id']=df_type['prefix']+df_type['type_label']
-    df_type=df_type.drop(columns=['serial_num','prefix','type_label'] )      
+    #prefix追加
+    df_type['element_id']=df_type['prefix']+df_type['type_label']    
+    df_type_prefix=df_type[['prefix','type_label']]
+    df_type_prefix=df_type_prefix.set_index('type_label')  
+    dict_type_prefix=df_type_prefix.to_dict()
+    df_type['from_prefix']=df_type['from_element_id'].map(dict_type_prefix['prefix'])
+    df_type['to_prefix']=df_type['to_element_id'].map(dict_type_prefix['prefix'])
+    df_type['from_element_id']=df_type['from_prefix']+df_type['from_element_id']
+    df_type['to_element_id']=df_type['to_prefix']+df_type['to_element_id']
+    df_type=df_type.drop(columns=['serial_num','prefix','type_label'])    
     return df_type    
 
 def get_xml_attrib_value( node, attrib):
@@ -194,12 +199,12 @@ def get_xml_attrib_value( node, attrib):
 
 def seek_from_docID(save_path,docIDs):
     '''
-    docIDからXBRLファイルを探す
-    なければ取得する
-    '''
-    df_json=pd.read_json('xbrldocs.json') #5年分約30万行 
-    df_json['dtDateTime']=pd.to_datetime(df_json['submitDateTime']) #obj to datetime
-    df_json['dtDate']=df_json['dtDateTime'].dt.date #時刻を丸める　normalize round resample date_range
+    docIDからXBRLファイルのディレクトリーリストを取得
+    
+    '''    
+    df_json=pd.read_json('xbrldocs.json',dtype='object') #5年分約30万行
+    df_json = column_shape(df_json) #dataframeを推敲    
+    download_xbrl(df_json,save_path,docIDs) #XBRLファイルをなければ取得
     dirls=[]
     for docID in docIDs:                 
         #docIDsからdataframe 抽出
@@ -207,8 +212,6 @@ def seek_from_docID(save_path,docIDs):
         file_dir=save_path+'\\'+str(int(sDate[0:4]))+'\\'+\
             str(int(sDate[5:7]))+'\\'+str(int(sDate[8:10]))+'\\'\
             +docID+'\\'+docID+'\\XBRL\\PublicDoc'
-        if not os.path.isdir(file_dir): #xdrl fileなければ取得
-            get_xbrl(docID,df_json,save_path)
         dirls.append(file_dir)
     return dirls
 
@@ -246,7 +249,7 @@ def xbrl_to_dataframe(xbrlfile) :
     if 'from_element_id' in df_xbrl.columns : #日本語ラベル追加
         df_all_label.reset_index(drop=True, inplace=True)
         add_label_string(df_xbrl,df_all_label)
-    #df_all_label.to_excel('all_label.xls',encoding='cp938')
+    df_all_label.to_excel('all_label.xls',encoding='cp938')
     df_xbrl=df_xbrl.dropna(subset=['amount']) #amount空　削除
     return df_xbrl
 
@@ -254,7 +257,7 @@ def merge_df(df_all_label,df_facts,df_type) :
     #マージ 
     df_facts['amount']=df_facts['amount'].str[:3000]
     df_merge=pd.merge(df_all_label,df_facts,on=['element_id'],how='inner') #型作成    
-    #df_merge.to_excel('labelfacts.xls',encoding='cp938')    
+    df_merge.to_excel('labelfacts.xls',encoding='cp938')    
     df_xbrl=pd.merge(df_type,df_merge,on=['element_id'],how='outer') #数値埋め込み
     return df_xbrl 
 def linklog():
@@ -274,27 +277,8 @@ def add_label_string(df_xbrl,df_label) :
     df_xbrl['from_string']=df_xbrl['from_element_id'].map(dic_label['label_string'])
     df_xbrl['to_string']=df_xbrl['to_element_id'].map(dic_label['label_string'])
     return df_xbrl
-def get_xbrl(docID,df,save_path) :
-    #path 指定したpathへsubDateTimeから \年\月\日\文章コード\文章コード のディレクトリーを作成し保存
-    sDate=df[df['docID']==docID].submitDateTime.to_list()[0]
-    save_path=save_path+'\\'+str(int(sDate[0:4]))+'\\'+str(int(sDate[5:7]))+\
-                '\\'+str(int(sDate[8:10]))+'\\'+docID+'\\'+docID
-    if os.path.isdir(save_path) == True : #過去に読み込んだ事あるか(dirあるか)
-        return
-    #書類取得
-    url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents/'+docID
-    params = { 'type': 1} #1:zip 2 pdf
-    headers = {'User-Agent': 'メールアドレスを入れておく'}
-    res = requests.get(url, params=params,verify=False,timeout=3.5, headers=headers)
-    if 'stream' in res.headers['Content-Type'] :
-        with zipfile.ZipFile(io.BytesIO(res.content)) as existing_zip:        
-            existing_zip.extractall(save_path)
-    elif 'application/json' in res.headers['Content-Type'] :
-        print('error : '+docID)
-        print(res.json())        
-    else :
-        print('error : '+docID)
-        print(res.headers)
+
+
 if __name__=='__main__':      
     #初期化したいときは'linklog.pkl','labelフォルダー'削除
     save_path='d:\\data\\xbrl\\temp' #xbrl fileの基幹フォルダー
@@ -303,9 +287,9 @@ if __name__=='__main__':
     docIDs=['S100DJ2G',]#['S100DAZ4']
     #確認書以外はOK 確認書はxbrlがない
     filenames=[]
-    dirls=seek_from_docID(save_path,docIDs)
-    for dirt in dirls: 
-        for file_name in glob.glob(dirt+'\\*.xbrl') :
+    dirls=seek_from_docID(save_path,docIDs)    
+    for dir_text in dirls: 
+        for file_name in glob.glob(dir_text+'\\*.xbrl') :
             filenames.append(file_name)#ここにXBRL File 指定
     if filenames :
         for xbrlfile in filenames :
@@ -316,5 +300,4 @@ if __name__=='__main__':
             print(xlsname)
             df_xbrl.to_excel(xlsname+'.xls',encoding='cp938')            
     else : print('xbrl file 見つかりません')
-    
     
