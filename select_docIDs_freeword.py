@@ -99,8 +99,8 @@ def download_xbrl(df_json,save_path,docIDs):
             #書類取得
             url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents/'+docID
             params = { 'type': 1} #1:zip 2 pdf
-            headers = {'User-Agent': 'メールアドレスを入れておく'}
-            res = requests.get(url, params=params,verify=False,timeout=3.5, headers=headers)
+            headers = {'User-Agent': 'add mail address'}            
+            res = requests.get(url, params=params,verify=False,timeout=3.5, headers=headers)            
             sleep(1)
             if 'stream' in res.headers['Content-Type'] :
                 with zipfile.ZipFile(io.BytesIO(res.content)) as existing_zip:        

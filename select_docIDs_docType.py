@@ -16,7 +16,7 @@ import urllib3
 from urllib3.exceptions import InsecureRequestWarning
 urllib3.disable_warnings(InsecureRequestWarning) #verify=False対策
 import unicodedata
-from edinet_jsons import main_jsons
+from EDINET_API import main_jsons
 from select_docIDs_freeword import column_shape,display_From_docIDS,download_xbrl
 def select_docIDs_docType(df,dict_cond) :
     docIDs=[]
@@ -45,8 +45,8 @@ if __name__=='__main__':
     docIDs=select_docIDs_docType(df,dict_cond)    
     display_From_docIDS(docIDs,df)#取得docIDs情報表示
     print('docIDsが '+str(len(docIDs))+' 件見つかりました。')
-    ans = input("ダウンロードしてよろしいですか(y/n)")
-    if ans == "y":
+    ans = input('ダウンロードしてよろしいですか(y/n)')
+    if ans == 'y':
         download_xbrl(df,save_path,docIDs)      
     '''
     書類一覧項目{'JCN':'提出者法人番号', 'attachDocFlag':'代替書面・添付文書有無フラグ', 
