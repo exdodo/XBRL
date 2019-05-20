@@ -16,9 +16,12 @@ select_docIDs_docType.py:
 EDINET_APIで作成した'xbrldocs.json'から年次有価証券報告書を一括してxbrlを取得するため作成。
 
 XbrlParser.py:
-XBRLをデーターフレームへ。dataframe to xls 制作中。
+XBRLをデーターフレームへ。
 IFRS形式で提出している企業の連結情報がとれないので調べてみたら、仕様が糞だった。
 参考URL：https://blog.boost-up.net/
+
+XbrlToXls:
+エクセル形式にに報告書を変換。連結単独とかぐちゃぐちゃでcontext_refを上手に分ける必要あり
 
 https://www.fsa.go.jp/search/20190228.html
 を読むと2019年からはタクソノミが用意されるので開示が義務化されるならいいな
