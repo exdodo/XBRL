@@ -16,9 +16,8 @@ import urllib3
 from urllib3.exceptions import InsecureRequestWarning
 urllib3.disable_warnings(InsecureRequestWarning) #verify=False対策
 import unicodedata
-from EDINET_API import main_jsons
-from select_docIDs_freeword import colunm_shape,display_From_docIDS,get_xbrl_from_docIDs
-
+from edinet_jsons import main_jsons
+from select_docIDs_freeword import column_shape,display_From_docIDS,download_xbrl
 def select_docIDs_docType(df,dict_cond) :
     docIDs=[]
     df_focus=df              
@@ -40,16 +39,15 @@ if __name__=='__main__':
     nYears=[2018,2018] #期間指定　年　以上以内      
     main_jsons() #前日まで提出書類一覧を取得  
     df=pd.read_json('xbrldocs.json',dtype='object') #5年分約30万行
-    df = colunm_shape(df) #dataframeを推敲
+    df = column_shape(df) #dataframeを推敲
     df=df[(df['dtDateTime'].dt.year >= min(nYears)) 
             & (df['dtDateTime'].dt.year <= max(nYears))]    
-    docIDs=select_docIDs_docType(df,dict_cond)
+    docIDs=select_docIDs_docType(df,dict_cond)    
+    display_From_docIDS(docIDs,df)#取得docIDs情報表示
     print('docIDsが '+str(len(docIDs))+' 件見つかりました。')
     ans = input("ダウンロードしてよろしいですか(y/n)")
     if ans == "y":
-        get_xbrl_from_docIDs(df,save_path,docIDs)    
-    #get_xbrl_from_docIDs(df,save_path,docIDs)
-    #display_From_docIDS(docIDs,df)#取得docIDs情報表示
+        download_xbrl(df,save_path,docIDs)      
     '''
     書類一覧項目{'JCN':'提出者法人番号', 'attachDocFlag':'代替書面・添付文書有無フラグ', 
      'currentReportReason':'臨報提出事由', 'disclosureStatus':'開示不開示区分',
