@@ -109,8 +109,9 @@ def parse_facts(fxbrl):
     decimals:数値の精度 
     classif:用途　区分       
     """
-    facts_dict = defaultdict(list)    
-    ET_xbrl=ET.parse(fxbrl)
+    facts_dict = defaultdict(list)
+    parser = ET.XMLParser(recover=True)
+    ET_xbrl=ET.parse(fxbrl,parser)   
     root=ET_xbrl.getroot()
     nslist=[ i+':*' for i in root.nsmap ]
     #print(nslist)
