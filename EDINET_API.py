@@ -77,7 +77,7 @@ def json_docs(dt_5y,dt_today) :
         datelogs.sort()
         pickle.dump(datelogs, log_file)    
     return df_doc2
-    
+'''    
 def get_xbrl(docID,path='d:\\data') :
     #書類取得
     url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents/'+docID
@@ -90,7 +90,7 @@ def get_xbrl(docID,path='d:\\data') :
     ATTRIBUTE = 'filename='
     fileName = contentDisposition[contentDisposition.find(ATTRIBUTE) + len(ATTRIBUTE):]
     print(contentType,fileName)
-
+'''
 def concat_df(df_doc2):
     #concat
     if os.path.exists('xbrldocs.json') :  

@@ -13,10 +13,10 @@ from time import sleep
 from EDINET_API import main_jsons
 import zipfile
 import io
-from tqdm import tqdm
+#from tqdm import tqdm
 import os
 import unicodedata
-
+from datetime import datetime
 def select_dict_docIDs(df,seek_word):
     #辞書にして抽出
     df=df.set_index('docID')
@@ -28,12 +28,15 @@ def select_dict_docIDs(df,seek_word):
     return docIDs
 
 
-def select_docIDs_freeword(df,seek_words,seek_columns=[]) :
+def select_docIDs_freeword(df,seek_words=['トヨタ自動車'],seek_columns=[]) :
     '''
     df:検索対象データーフレーム
     seek_words:検索用語
     seek_columns:検索列
     '''
+    seek_words=[str(n) for n in seek_words ] #文字列に変換
+    seek_words=[ unicodedata.normalize("NFKC", n) 
+        if n.isdigit() else n for n in seek_words ] #数字は半角文字列に統一 
     if len(seek_columns)==0 : seek_columns=df.columns
     docIDs=[]    
     for col_name in seek_columns :
@@ -47,7 +50,9 @@ def select_docIDs_freeword(df,seek_words,seek_columns=[]) :
     flat_docs = [item for sublist in docIDs for item in sublist]#flatten
     unique_docs=list(set(flat_docs))    
     return unique_docs
-def column_shape(df) :
+def column_shape(df,nYears=[]) :
+    if nYears==[] :
+        nYears=[2014,int(datetime.now().year)]
     #submitDateTime 日付型へ
     df['dtDateTime']=pd.to_datetime(df['submitDateTime']) #obj to datetime
     df['dtDate']=df['dtDateTime'].dt.date #時刻を丸める　normalize round resample date_range
@@ -59,14 +64,16 @@ def column_shape(df) :
     for col_name in cols :
         df[col_name]=df[col_name].fillna(0)
         df[col_name]=df[col_name].astype(int)
-        df[col_name]=df[col_name].astype(str)
-    
+        df[col_name]=df[col_name].astype(str)   
+    #期間指定
+    df=df[(df['dtDateTime'].dt.year >= min(nYears)) 
+            & (df['dtDateTime'].dt.year <= max(nYears))]
     #docIDだけあり他がｎｕｌｌ（諸般の事情で削除された）が2000近くあるから削除
     df=df.dropna(subset=['submitDateTime'])
     df=df.sort_values('submitDateTime')         
     return df   
 
-def display_From_docIDS(docIDs,df) :
+def display_From_docIDS(df,docIDs) :
     #edinetコード　提出者名辞書作成
     df_edinetCode=pd.read_csv('EdinetcodeDLInfo.csv',header=1,encoding='cp932')
     df_edinetCode=df_edinetCode.set_index('ＥＤＩＮＥＴコード')
@@ -83,52 +90,45 @@ def display_From_docIDS(docIDs,df) :
     df['filerName']=df['filerName'].str[:10]
     print(df[['dtDate','secCode','filerName','docDescription']])
 
-def select_docIDs_docType(df,docType) :
-    docIDs=[] 
-    return docIDs        
 def download_xbrl(df_json,save_path,docIDs):
     #docIDから既にｄowloadしたもんか判断
-    for docID in tqdm(docIDs):                 
+    for docID in docIDs :                 
         #docIDsからdataframe 抽出
-        sDate=df_json[df_json['docID']==docID].submitDateTime.to_list()[0]
-        flag=df_json[df_json['docID']==docID].xbrlFlag.to_list()[0]
-        file_dir=save_path+'\\'+str(int(sDate[0:4]))+'\\'+\
-            str(int(sDate[5:7]))+'\\'+str(int(sDate[8:10]))+'\\'\
-            +docID+'\\'+docID
-        if not os.path.isdir(file_dir) and flag=='1':  #xdrl fileなければ取得            
-            #書類取得
-            url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents/'+docID
-            params = { 'type': 1} #1:zip 2 pdf
-            headers = {'User-Agent': 'add mail address'}            
-            res = requests.get(url, params=params,verify=False,timeout=3.5, headers=headers)            
-            sleep(1)
-            if 'stream' in res.headers['Content-Type'] :
-                with zipfile.ZipFile(io.BytesIO(res.content)) as existing_zip:        
-                    existing_zip.extractall(file_dir)                    
-            else :
-                print('error : '+docID)
-                print(res.headers)
+        if docID in df_json['docID'].to_list()  : #削除ドキュメント対策
+            sDate=df_json[df_json['docID']==docID].submitDateTime.to_list()[0]
+            flag=df_json[df_json['docID']==docID].xbrlFlag.to_list()[0]
+            file_dir=save_path+'\\'+str(int(sDate[0:4]))+'\\'+\
+                str(int(sDate[5:7]))+'\\'+str(int(sDate[8:10]))+'\\'\
+                +docID+'\\'+docID
+            if not os.path.isdir(file_dir) and flag=='1':  #xdrl fileなければ取得            
+                #書類取得
+                url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents/'+docID
+                params = { 'type': 1} #1:zip 2 pdf
+                headers = {'User-Agent': 'add mail address'}            
+                res = requests.get(url, params=params,verify=False,timeout=3.5, headers=headers)            
+                sleep(1)
+                if 'stream' in res.headers['Content-Type'] :
+                    with zipfile.ZipFile(io.BytesIO(res.content)) as existing_zip:        
+                        existing_zip.extractall(file_dir)                    
+                else :
+                    print('error : '+docID)
+                    print(res.headers)
 if __name__=='__main__':
     #-------------------------------------------------------------------------
     save_path='d:\\data\\xbrl\\temp' #xbrl file保存先の基幹フォルダー
     #save_path='d:\\data\\xbrl\\download\\edinet' #有報キャッチャー自分用      
     seek_words=['6501',6501,'６５０１','日立製作所'] #'030000':年次有価証券報告書
-    seek_words=[str(n) for n in seek_words ] #文字列に変換 
     #列指定したいならば書類一覧項目を下記にしるす　なければ[]
-    seek_columns=['filerName','secCode','docDescription','subjectEdinetCode']
-    nYears=[2019,2019] #期間指定　年　以上以内      
+    seek_columns=['filerName','secCode','docDescription','subjectEdinetCode','docID']
+    nYears=[2017,2018] #期間指定　年　以上以内      
     #-----------------------------------------------------------------------
     main_jsons() #前日まで提出書類一覧を取得  
-    df=pd.read_json('xbrldocs.json',dtype='object') #5年分約30万行
-    df = column_shape(df) #dataframeを推敲
-    seek_words=[ unicodedata.normalize("NFKC", n) 
-        if n.isdigit() else n for n in seek_words ] #数字は半角文字列に統一     
-    df=df[(df['dtDateTime'].dt.year >= min(nYears)) 
-            & (df['dtDateTime'].dt.year <= max(nYears))]    
+    df = pd.read_json('xbrldocs.json',dtype='object') #5年分約30万行
+    df = column_shape(df,nYears) #dataframeを推敲
     docIDs=select_docIDs_freeword(df,seek_words,seek_columns)#or検索
     #---過去５年分のEDINETファイル情報は３０万以上あり有価証券報告書だけで1TBに迫ります----
     #取得json情報表示（docID・日付・提出者名・書類内容）
-    display_From_docIDS(docIDs,df)
+    display_From_docIDS(df,docIDs)
     print('docIDsが '+str(len(docIDs))+' 件見つかりました。')
     ans = input("ダウンロードしてよろしいですか(y/n)")
     if ans == "y":

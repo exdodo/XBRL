@@ -87,16 +87,18 @@ def parse_companyxml(company_file) :
         prefix=os.path.basename(company_file)[0:15]+'_'+\
                 os.path.basename(company_file)[20:30]+'_'
         #print(prefix) #jpcrp030000-asr_E01737-000_
-        for label_node in labels.findall('.//link:label',ns):
-            if 'id' in label_node.attrib:             
-                element_id=label_node.attrib['id'].replace('label_',prefix)
-                label_dict['lab_type'].append(label_node.attrib['{'+ns['xlink']+'}type'])
-                label_dict['label'].append(label_node.attrib['{'+ns['xlink']+'}label'])
-                label_dict['role'].append(label_node.attrib['{'+ns['xlink']+'}role'])
-                label_dict['lang'].append(label_node.attrib['{'+ns['xml']+'}lang'])
-                label_dict['element_id'].append( element_id )
-                label_dict['lab_name']=label_node.attrib['id']
-            label_dict['label_string'].append( label_node.text)            
+        for label_node in labels.findall('.//link:label',ns):            
+            element_id=label_node.attrib['{'+ns['xlink']+'}label']
+            element_id=element_id.replace('label_',prefix)
+            #element_id=label_node.attrib['label'].replace('label_',prefix)
+            label_dict['lab_type'].append(label_node.attrib['{'+ns['xlink']+'}type'])
+            label_dict['label'].append(label_node.attrib['{'+ns['xlink']+'}label'])
+            label_dict['role'].append(label_node.attrib['{'+ns['xlink']+'}role'])
+            label_dict['lang'].append(label_node.attrib['{'+ns['xml']+'}lang'])
+            label_dict['element_id'].append( element_id )
+            label_dict['lab_name']=label_node.attrib['{'+ns['xlink']+'}label']
+            #label_dict['lab_name']=label_node.attrib['id']
+            label_dict['label_string'].append( label_node.text)      
     return pd.DataFrame(label_dict)        
 
 def parse_facts(fxbrl):   
@@ -198,12 +200,12 @@ def get_xml_attrib_value( node, attrib):
     else:
         return None
 
-def seek_from_docID(save_path,docIDs):
+def seek_from_docIDs(save_path,docIDs):
     '''
     docIDからXBRLファイルのディレクトリーリストを取得
     
     '''    
-    df_json=pd.read_json('xbrldocs.json',dtype='object') #5年分約30万行
+    df_json = pd.read_json('xbrldocs.json',dtype='object') #5年分約30万行
     df_json = column_shape(df_json) #dataframeを推敲    
     download_xbrl(df_json,save_path,docIDs) #XBRLファイルをなければ取得
     dirls=[]
@@ -279,16 +281,15 @@ def add_label_string(df_xbrl,df_label) :
     df_xbrl['to_string']=df_xbrl['to_element_id'].map(dic_label['label_string'])
     return df_xbrl
 
-
 if __name__=='__main__':      
     #初期化したいときは'linklog.pkl','labelフォルダー'削除
     save_path='d:\\data\\xbrl\\temp' #xbrl fileの基幹フォルダー
     #save_path='d:\\data\\xbrl\\download\\edinet' #有報キャッチャー自分用
-    #docIDs=['S100EKNV','S100EUTL','S100D6OS','S100DKFI','S100DJ2G',]
-    docIDs=['S100DJ2G',]#['S100DAZ4']
+    docIDs=['S100EKNV','S100EUTL','S100D6OS','S100DKFI','S100DJ2G',]
+    #docIDs=['S100DAZ4']#['S100DJ2G',]#['S100DAZ4']
     #確認書以外はOK 確認書はxbrlがない
     filenames=[]
-    dirls=seek_from_docID(save_path,docIDs)    
+    dirls=seek_from_docIDs(save_path,docIDs)    
     for dir_text in dirls: 
         for file_name in glob.glob(dir_text+'\\*.xbrl') :
             filenames.append(file_name)#ここにXBRL File 指定
