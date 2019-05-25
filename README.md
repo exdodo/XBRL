@@ -12,7 +12,7 @@ edinetからAPIで前日までの提出書類一覧情報をJSON形式で'xbrldo
 select_docIDs_freeword.py:∪・ω・∪doc
 EDINET_APIで作成した'xbrldocs.json'から検索用語を部分一致の検索でdocIDsを抽出しxbrlを取得。
 
-select_docIDs_docType.py:🐶doc
+select_docIDs_docType.py:👨‍⚕️doc
 EDINET_APIで作成した'xbrldocs.json'から年次有価証券報告書を一括してxbrlを取得するため作成。
 
 XbrlParser.py:
@@ -31,5 +31,4 @@ toHDFfromXBRL.py:👼怪僧
 ・ダウンロードしたXBRLファイルをHDF化するためのプログラム
 ・テキストは225文字以上だとpytableの警告が出るので空白を削除して先頭から220文字
 2014年からの年次有報ではエラーが出なかったが、きちんと写せているか他の書類タイプでできるかは不明
-HDFはインターネットで調べるか（参考URL：https://www.hdfgroup.org/solutions/hdf5/　昔はログインしなくてもDL出来たが今はアカウントが必要）
-英語ですがo'reilly『Python and HDF5』。CM:NASAが選んだデーター形式
+CM:NASAが選んだデーター形式
