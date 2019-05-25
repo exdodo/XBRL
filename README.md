@@ -31,3 +31,5 @@ toHDFfromXBRL.py:👼怪僧
 ・ダウンロードしたXBRLファイルをHDF化するためのプログラム
 ・テキストは225文字以上だとpytableの警告が出るので空白を削除して先頭から220文字
 2014年からの年次有報ではエラーが出なかったが、きちんと写せているか他の書類タイプでできるかは不明
+HDFはインターネットで調べるか（参考URL：https://www.hdfgroup.org/solutions/hdf5/　昔はログインしなくてもDL出来たが今はアカウントが必要）
+英語ですがo'reilly『Python and HDF5』。CM:NASAが選んだデーター形式
