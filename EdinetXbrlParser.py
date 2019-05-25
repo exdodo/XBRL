@@ -77,7 +77,10 @@ def get_label1(link_item):
     return pd.DataFrame(link_dict)
 
 def parse_companyxml(company_file) :   
-    label_dict = defaultdict(list)
+    company_label = defaultdict(list)
+    company_loc=defaultdict(list)
+    company_arc=defaultdict(list)
+    #loc->label->labelArc
     with open(company_file,'rt', encoding='utf-8') as comp_file :
         labels = ET.parse(comp_file)    
         root=labels.getroot()
@@ -86,20 +89,34 @@ def parse_companyxml(company_file) :
         #jpcrp030000-asr-001_E01737-000_2018-03-31_01_2018-06-29_lab.xml
         prefix=os.path.basename(company_file)[0:15]+'_'+\
                 os.path.basename(company_file)[20:30]+'_'
-        #print(prefix) #jpcrp030000-asr_E01737-000_
-        for label_node in labels.findall('.//link:label',ns):            
-            element_id=label_node.attrib['{'+ns['xlink']+'}label']
-            element_id=element_id.replace('label_',prefix)
-            #element_id=label_node.attrib['label'].replace('label_',prefix)
-            label_dict['lab_type'].append(label_node.attrib['{'+ns['xlink']+'}type'])
-            label_dict['label'].append(label_node.attrib['{'+ns['xlink']+'}label'])
-            label_dict['role'].append(label_node.attrib['{'+ns['xlink']+'}role'])
-            label_dict['lang'].append(label_node.attrib['{'+ns['xml']+'}lang'])
-            label_dict['element_id'].append( element_id )
-            label_dict['lab_name']=label_node.attrib['{'+ns['xlink']+'}label']
-            #label_dict['lab_name']=label_node.attrib['id']
-            label_dict['label_string'].append( label_node.text)      
-    return pd.DataFrame(label_dict)        
+        for child in labels.findall('.//link:labelLink',ns) :
+            for grand_child in child.iter():                
+                if grand_child.tag=='{http://www.xbrl.org/2003/linkbase}loc':
+                    #company_loc['type'].append(grand_child.attrib['{'+ns['xlink']+'}type'])
+                    company_loc['href'].append(grand_child.attrib['{'+ns['xlink']+'}href'])
+                    href=grand_child.attrib['{'+ns['xlink']+'}href']
+                    element_id=href.split('#')[1]
+                    #company_loc['element_id'].append(element_id)
+                    #company_loc['label'].append(grand_child.attrib['{'+ns['xlink']+'}label'])
+                    #company_loc['title'].append(grand_child.attrib['{'+ns['xlink']+'}title'])
+                    #company_loc['serial_num'].append(serial_num)                
+                if grand_child.tag=='{http://www.xbrl.org/2003/linkbase}label':
+                    element_id=grand_child.attrib['{'+ns['xlink']+'}label']
+                    element_id=element_id.replace('label_',prefix)
+                    company_label['lab_type'].append(grand_child.attrib['{'+ns['xlink']+'}type'])
+                    company_label['label'].append(grand_child.attrib['{'+ns['xlink']+'}label'])
+                    #company_label['role'].append(grand_child.attrib['{'+ns['xlink']+'}role'])
+                    company_label['lang'].append(grand_child.attrib['{'+ns['xml']+'}lang'])
+                    company_label['element_id'].append( element_id )
+                    #company_label['lab_name']=grand_child.attrib['{'+ns['xlink']+'}label']
+                    #label_dict['lab_name']=label_node.attrib['id']
+                    company_label['label_string'].append( grand_child.text)                    
+                    #company_label['serial_num'].append(serial_num)
+                if grand_child.tag=='{http://www.xbrl.org/2003/linkbase}labelArc':
+                    company_arc['from_element_id'].append(grand_child.attrib['{'+ns['xlink']+'}from'])
+                    company_arc['to_element_id'].append(grand_child.attrib['{'+ns['xlink']+'}to'])
+                    company_arc['elemnt_id'].append( element_id ) #label から流用            
+        return pd.DataFrame(company_label),pd.DataFrame(company_arc) 
 
 def parse_facts(fxbrl):   
     """
@@ -242,8 +259,8 @@ def xbrl_to_dataframe(xbrlfile) :
     with open('linklog.pkl','wb') as log_file:
         pickle.dump(linklogs, log_file)
     if os.path.exists(xbrlfile.replace('.xbrl','_lab.xml')) :    
-        df_comp=parse_companyxml(xbrlfile.replace('.xbrl','_lab.xml'))        
-        df_all_label=pd.concat([df_comp,df_label],sort=False)        
+        df_comp_label,df_comp_type=parse_companyxml(xbrlfile.replace('.xbrl','_lab.xml'))        
+        df_all_label=pd.concat([df_comp_label,df_label],sort=False)            
     else :
         df_all_label=df_label
     df_facts=parse_facts(xbrlfile)
