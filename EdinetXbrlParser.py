@@ -37,9 +37,11 @@ from collections import defaultdict
 import re
 import glob
 import pickle
+from tqdm import tqdm
 from select_docIDs_freeword import download_xbrl,column_shape
-def get_label_links(xbrlfile):
-    xsd_file = xbrlfile.replace('.xbrl','.xsd')
+from pathlib import Path
+def get_label_links(xsd_file):
+    #xsd_file = xbrlfile.replace('.xbrl','.xsd')
     labels=ET.parse(xsd_file)
     root= labels.getroot()
     ns= root.nsmap    
@@ -126,7 +128,8 @@ def parse_facts(fxbrl):
     contextRef:コンテキスト(連結・単体、相対年度、期間・時点)の指定
     unit_ref:通貨の種類
     decimals:数値の精度 
-    classif:用途　区分       
+    classif:用途　区分
+    scenario:ディメンション　事業所別報告などに使う        
     """
     facts_dict = defaultdict(list)
     parser = ET.XMLParser(recover=True)
@@ -199,7 +202,7 @@ def parse_type(xmlfile):
     df_loc=pd.DataFrame(type_dict_loc)
     df_arc=pd.DataFrame(type_dict_arc)
     df_type=pd.merge(df_loc,df_arc,on=['serial_num'],how='inner')
-    #prefix追加
+    #prefix追加 element_id from_e to_e
     df_type['element_id']=df_type['prefix']+df_type['type_label']    
     df_type_prefix=df_type[['prefix','type_label']]
     df_type_prefix=df_type_prefix.set_index('type_label')  
@@ -208,6 +211,7 @@ def parse_type(xmlfile):
     df_type['to_prefix']=df_type['to_element_id'].map(dict_type_prefix['prefix'])
     df_type['from_element_id']=df_type['from_prefix']+df_type['from_element_id']
     df_type['to_element_id']=df_type['to_prefix']+df_type['to_element_id']
+    #不要列削除
     df_type=df_type.drop(columns=['serial_num','prefix','type_label'])    
     return df_type    
 
@@ -222,17 +226,18 @@ def seek_from_docIDs(save_path,docIDs):
     docIDからXBRLファイルのディレクトリーリストを取得
     
     '''    
-    df_json = pd.read_json('xbrldocs.json',dtype='object') #5年分約30万行
+    df_json=pd.read_json('xbrldocs.json',dtype='object') #5年分約30万行
     df_json = column_shape(df_json) #dataframeを推敲    
     download_xbrl(df_json,save_path,docIDs) #XBRLファイルをなければ取得
     dirls=[]
-    for docID in docIDs:                 
+    for docID in tqdm(docIDs):                 
         #docIDsからdataframe 抽出
-        sDate=df_json[df_json['docID']==docID].submitDateTime.to_list()[0]
-        file_dir=save_path+'\\'+str(int(sDate[0:4]))+'\\'+\
-            str(int(sDate[5:7]))+'\\'+str(int(sDate[8:10]))+'\\'\
-            +docID+'\\'+docID+'\\XBRL\\PublicDoc'
-        dirls.append(file_dir)
+        if docID in df_json['docID'].to_list()  : #削除ドキュメント対策
+            sDate=df_json[df_json['docID']==docID].submitDateTime.to_list()[0]
+            file_dir=save_path+'\\'+str(int(sDate[0:4]))+'\\'+\
+                str(int(sDate[5:7]))+'\\'+str(int(sDate[8:10]))+'\\'\
+                +docID+'\\'+docID+'\\XBRL\\PublicDoc'
+            dirls.append(file_dir)
     return dirls
 
 def xbrl_to_dataframe(xbrlfile) :
@@ -240,11 +245,14 @@ def xbrl_to_dataframe(xbrlfile) :
     taxxomyをその都度読むとネットワークに負荷を掛けるので過去に読んだ事のあるものは'label'
     フォルダーに保存してそこから読み出す
     '''
+    #.xsd,_lab.xml,_pre.xml,_cal.xmlを探す
+    
     if not os.path.isdir('label') :
         os.mkdir('label')  
     df_label = pd.DataFrame(index=[], columns=[])
     linklogs=linklog()  #過去の読込日を呼び出す     
-    for link_item in get_label_links(xbrlfile) :
+    xsd_file=search_filename(xbrlfile,'.xsd')
+    for link_item in get_label_links(xsd_file) :
         label_name, xml = os.path.splitext(os.path.basename(link_item))
         label_name='./label/'+label_name+'.json'
         if os.path.exists(label_name) :
@@ -258,13 +266,14 @@ def xbrl_to_dataframe(xbrlfile) :
             #df_label=df_label.drop_duplicates(subset=['element_id', 'label_string']) #重複削除
     with open('linklog.pkl','wb') as log_file:
         pickle.dump(linklogs, log_file)
-    if os.path.exists(xbrlfile.replace('.xbrl','_lab.xml')) :    
-        df_comp_label,df_comp_type=parse_companyxml(xbrlfile.replace('.xbrl','_lab.xml'))        
-        df_all_label=pd.concat([df_comp_label,df_label],sort=False)            
+    company_file=search_filename(xbrlfile,'_lab.xml')
+    if company_file!=None :        
+        df_comp_label,df_comp_type=parse_companyxml(company_file)        
+        df_all_label=pd.concat([df_comp_label,df_label],sort=False)        
     else :
         df_all_label=df_label
     df_facts=parse_facts(xbrlfile)
-    df_type=parse_type(xbrlfile.replace('.xbrl','_pre.xml'))
+    df_type=parse_type(search_filename(xbrlfile,'_pre.xml'))
     df_xbrl=merge_df(df_all_label,df_facts,df_type)
     if 'from_element_id' in df_xbrl.columns : #日本語ラベル追加
         df_all_label.reset_index(drop=True, inplace=True)
@@ -272,7 +281,17 @@ def xbrl_to_dataframe(xbrlfile) :
     #df_all_label.to_excel('all_label.xls',encoding='cp938')
     df_xbrl=df_xbrl.dropna(subset=['amount']) #amount空　削除
     return df_xbrl
-
+def search_filename(xbrlfile,sType) : #sType='.xsd,','_pre.xml','_lab.xml'
+    glob_string='*'+sType
+    if Path(xbrlfile.replace('.xbrl',sType)).exists() :        
+        return xbrlfile.replace('.xbrl',sType)
+    else :
+       p=Path(xbrlfile)
+       file_names=[s for s in p.parent.glob(glob_string) if re.search(p.name[0:30], str(s))]
+       if file_names==[] :
+           return None 
+       else:
+           return str(file_names[0])
 def merge_df(df_all_label,df_facts,df_type) :
     #マージ 
     df_facts['amount']=df_facts['amount'].str[:3000]
