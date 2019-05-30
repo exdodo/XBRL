@@ -117,3 +117,10 @@ all_label.xls
 .vscode/settings.json
 label/jpcrp-sbr_2013-08-31_lab.json
 label/jplvh_2014-07-31_lab.json
+label/jpcrp-esr_2015-04-30_lab.json
+label/jpcrp_2016-02-29_lab.json
+label/jpcrp_2017-02-28_lab.json
+label/jpctl_2013-08-31_lab.json
+label/jppfs_2016-02-29_lab.json
+label/jppfs_2017-02-28_lab.json
+*.json

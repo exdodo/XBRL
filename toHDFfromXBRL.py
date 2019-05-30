@@ -26,7 +26,6 @@ from  EdinetXbrlParser import xbrl_to_dataframe
 import pandas as pd
 import h5py
 from itertools import chain
-import os
 from tqdm import tqdm
 def docIDs_from_directory(save_path,dir_string):
     p_dir = Path(save_path)
@@ -66,7 +65,7 @@ def docIDs_to_HDF(save_path,dict_docIDs,df_json,data_path):
     return
 def docIDs_from_HDF(data_path):
     docIDs=[]
-    if os.path.exists(data_path) :
+    if Path(data_path).exists() :
         with h5py.File(data_path,'r') as f:
             docIDs=[]
             for edinetcode in f.keys() :
@@ -89,12 +88,12 @@ if __name__=='__main__':
     3.残ったものがダウンロードすべきdocID
     '''
     #main_jsons() #前日まで提出書類一覧を取得
-    #save_path='d:\\data\\xbrl\\temp' #xbrl fileの基幹フォルダー
-    save_path='d:\\data\\xbrl\\download\\edinet' #有報キャッチャー自分用
+    save_path='d:\\data\\xbrl\\temp' #xbrl fileの基幹フォルダー
+    #save_path='d:\\data\\xbrl\\download\\edinet' #有報キャッチャー自分用
     limited_path_word='' #年指定　2014年4月なら'\\2014\\4' 2014年'\\2014'
     limited_save_path=save_path+limited_path_word
-    dir_string='**/PublicDoc/*asr*.xbrl' #'**/PublicDoc/*asr*E*.xbrl'
-    data_path='d:\\data\\hdf\\xbrl.h5'#HDF保存先とファイル名
+    dir_string='**/PublicDoc/*.xbrl' #'**/PublicDoc/*asr*E*.xbrl'
+    data_path='d:\\data\\hdf\\samplexbrl.h5'#HDF保存先とファイル名
     
     #docIDの整合性を整える 過去にHDFかしたかjsonに記載のないものはHDF化しない
     hdf_docIDs=docIDs_from_HDF(data_path) #HDF保存済み　docIDs
