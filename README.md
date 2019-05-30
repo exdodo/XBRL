@@ -10,11 +10,11 @@ EDINET_API.py:q(-::-) 〆(-：：-) (-：：-)P ｼﾞｪｲｿﾝ
 edinetからAPIで前日までの提出書類一覧情報をJSON形式で'xbrldocs.json'を取得する。
 
 
-select_docIDs_freeword.py:∪・ω・∪doc
+select_docIDs_freeword.py:∪・ω・∪ドッグ
 
 EDINET_APIで作成した'xbrldocs.json'から検索用語を部分一致の検索でdocIDsを抽出しxbrlを取得。
 
-select_docIDs_docType.py:👨‍⚕️doc
+select_docIDs_docType.py:👨‍⚕️ドク
 
 EDINET_APIで作成した'xbrldocs.json'から年次有価証券報告書を一括してxbrlを取得するため作成。
 
