@@ -109,10 +109,15 @@ def edinetDocsToHDF(save_path,last_day=date.today(),start_day=date.today()-timed
         #print(df_docs['JCN']) 
         df_docs.to_hdf(save_path,'edinetdocs', format='table', mode='a',
                    data_columns=True, index=True, encoding='utf-8')
-        df_docs.to_json('xbrldocs_1.json')         
+        #念のためjson形式でも保存
+        #if Path(save_path).exists():
+        p=Path(save_path)
+        json_path=p.parent.resolve()           
+        json_file=str(json_path)+'\\xbrlDocs.json'
+        df_docs.to_json(json_file)         
     return 
 if __name__=='__main__':
     save_path='d:\\data\\hdf\\samplexbrl.h5'
     last_day=date.today()
-    start_day=date.today()-timedelta(5)
+    start_day=date.today()-timedelta(2)
     edinetDocsToHDF(save_path,last_day,start_day) #HDF形式で保存
