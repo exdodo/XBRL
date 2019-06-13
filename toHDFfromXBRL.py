@@ -87,7 +87,6 @@ if __name__=='__main__':
     2．common_docIDsからhdf_docIDs重ねれば削除
     3.残ったものがダウンロードすべきdocID
     '''
-    #main_jsons() #前日まで提出書類一覧を取得
     save_path='d:\\data\\xbrl\\temp' #xbrl fileの基幹フォルダー
     #save_path='d:\\data\\xbrl\\download\\edinet' #有報キャッチャー自分用
     limited_path_word='' #年指定　2014年4月なら'\\2014\\4' 2014年'\\2014'
