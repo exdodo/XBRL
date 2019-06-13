@@ -13,8 +13,8 @@ from time import sleep
 from EDINET_API import main_jsons
 import zipfile
 import io
-#from tqdm import tqdm
-import os
+from tqdm import tqdm
+from pathlib import Path
 import unicodedata
 from datetime import datetime
 def select_dict_docIDs(df,seek_word):
@@ -91,8 +91,11 @@ def display_From_docIDS(df,docIDs) :
     print(df[['dtDate','secCode','filerName','docDescription']])
 
 def download_xbrl(df_json,save_path,docIDs):
+    print('xbrl downloading...')
+    #error_docID={}
+    error_docIDs=[]
     #docIDから既にｄowloadしたもんか判断
-    for docID in docIDs :                 
+    for docID in tqdm(docIDs) :                 
         #docIDsからdataframe 抽出
         if docID in df_json['docID'].to_list()  : #削除ドキュメント対策
             sDate=df_json[df_json['docID']==docID].submitDateTime.to_list()[0]
@@ -100,7 +103,7 @@ def download_xbrl(df_json,save_path,docIDs):
             file_dir=save_path+'\\'+str(int(sDate[0:4]))+'\\'+\
                 str(int(sDate[5:7]))+'\\'+str(int(sDate[8:10]))+'\\'\
                 +docID+'\\'+docID
-            if not os.path.isdir(file_dir) and flag=='1':  #xdrl fileなければ取得            
+            if not Path(file_dir).exists() and flag=='1':  #xdrl fileなければ取得            
                 #書類取得
                 url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents/'+docID
                 params = { 'type': 1} #1:zip 2 pdf
@@ -111,28 +114,39 @@ def download_xbrl(df_json,save_path,docIDs):
                     with zipfile.ZipFile(io.BytesIO(res.content)) as existing_zip:        
                         existing_zip.extractall(file_dir)                    
                 else :
-                    print('error : '+docID)
-                    print(res.headers)
+                    error_docIDs.append(docID)
+                    #error_docID[docID]=res.headers
+    
+    if len(error_docIDs)>0 :
+        print(str(len(error_docIDs))+'件xbrl保存せず。　log.txt')
+        with open('log.txt', mode='w') as f:
+            f.writelines(error_docIDs)
+            #print(error_docID)
 if __name__=='__main__':
     #-------------------------------------------------------------------------
     save_path='d:\\data\\xbrl\\temp' #xbrl file保存先の基幹フォルダー
-    #save_path='d:\\data\\xbrl\\download\\edinet' #有報キャッチャー自分用      
-    seek_words=['6501',6501,'６５０１','日立製作所'] #'030000':年次有価証券報告書
+    hdf_path='d:\\data\\xbrl\\edinetxbrl.h5' #xbrl 書類一覧HDF　保存先
+    #save_path='d:\\data\\xbrl\\download\\edinet' #有報キャッチャー自分用
+    yuho=['030000'] #年次有価証券報告書 
+    mkgp=['禮子','赤根','世彰','絢','章智','龍哉','啓修','渋谷松原ビル',
+           '南青山不動産','Ｃ＆Ｉ','オフィスサポート','レノ','エスグランド','リビルド',
+           ] #旧村上
+    nitto=['加藤幸美','株式会社Ａ.１','ヤマゲン証券','石川善光','田邊勝己']
+    hitachi=['6501',6501,'６５０１','日立製作所'] #日立製作所       
+    seek_words=mkgp
     #列指定したいならば書類一覧項目を下記にしるす　なければ[]
     seek_columns=['filerName','secCode','docDescription','subjectEdinetCode','docID']
-    nYears=[2017,2018] #期間指定　年　以上以内      
+    nYears=[2019,2019] #期間指定　年　以上以内      
     #-----------------------------------------------------------------------
-    main_jsons() #前日まで提出書類一覧を取得  
-    df = pd.read_json('xbrldocs.json',dtype='object') #5年分約30万行
+    main_jsons(hdf_path) #前日まで提出書類一覧を取得  
+    df=pd.read_hdf(hdf_path,key='/index/edinetdocs')
     df = column_shape(df,nYears) #dataframeを推敲
     docIDs=select_docIDs_freeword(df,seek_words,seek_columns)#or検索
     #---過去５年分のEDINETファイル情報は３０万以上あり有価証券報告書だけで1TBに迫ります----
     #取得json情報表示（docID・日付・提出者名・書類内容）
     display_From_docIDS(df,docIDs)
     print('docIDsが '+str(len(docIDs))+' 件見つかりました。')
-    ans = input("ダウンロードしてよろしいですか(y/n)")
-    if ans == "y":
-        download_xbrl(df,save_path,docIDs)         
+    download_xbrl(df,save_path,docIDs)
     
     '''
     書類一覧項目{'JCN':'提出者法人番号', 'attachDocFlag':'代替書面・添付文書有無フラグ', 

@@ -2,13 +2,7 @@
 """
 Created on Thu May 16 10:23:34 2019
 注意：過去５年分のEDINETファイル情報は３０万以上あり有価証券報告書だけで1TBに迫ります
-@author: Yusuke
-"""
-
-# -*- coding: utf-8 -*-
-"""
-Created on Tue May 14 07:33:55 2019
-
+書類一覧項目から大量にXBRLファイルをダウンロードするために作成
 @author: Yusuke
 """
 import pandas as pd
@@ -30,24 +24,26 @@ def select_docIDs_docType(df,dict_cond) :
     flat_docs = [item for sublist in docIDs for item in sublist]#flatten
     unique_docs=list(set(flat_docs))
     return unique_docs
-if __name__=='__main__':
-    #---過去５年分のEDINETファイル情報は３０万以上あり有価証券報告書だけで1TBに迫ります----
-    #--DISK容量が十分にあるかダウンロード対象のdocIDsを絞らないとシステムに深刻な影響を与えます--
+def settei(dict_cond,nYears) :
     save_path='d:\\data\\xbrl\\temp' #xbrl file保存先の基幹フォルダー
-    #dict_cond={'formCode':'030000', 'ordinanceCode':'10'}　#'030000':年次有価証券報告書
-    dict_cond={'secCode':'6501'}       
-    nYears=[2018,2018] #期間指定　年　以上以内      
-    main_jsons() #前日まで提出書類一覧を取得  
-    df=pd.read_json('xbrldocs.json',dtype='object') #5年分約30万行
+    hdf_path='d:\\data\\xbrl\\edinetxbrl.h5' #xbrl 書類一覧HDF　保存先       
+    main_jsons(hdf_path) #前日まで提出書類一覧を取得  
+    df=pd.read_hdf(hdf_path,key='/index/edinetdocs')
     df = column_shape(df) #dataframeを推敲
     df=df[(df['dtDateTime'].dt.year >= min(nYears)) 
             & (df['dtDateTime'].dt.year <= max(nYears))]    
     docIDs=select_docIDs_docType(df,dict_cond)    
-    display_From_docIDS(docIDs,df)#取得docIDs情報表示
+    display_From_docIDS(df,docIDs)#取得docIDs情報表示
     print('docIDsが '+str(len(docIDs))+' 件見つかりました。')
-    ans = input('ダウンロードしてよろしいですか(y/n)')
-    if ans == 'y':
-        download_xbrl(df,save_path,docIDs)      
+    download_xbrl(df,save_path,docIDs)
+    return     
+if __name__=='__main__':
+    #---過去５年分のEDINETファイル情報は３０万以上あり有価証券報告書だけで1TBに迫ります----
+    #--DISK容量が十分にあるかダウンロード対象のdocIDsを絞らないとシステムに深刻な影響を与えます--
+    #dict_cond={'formCode':'030000', 'ordinanceCode':'10'}　#年次有価証券報告書 取得用
+    dict_cond={'secCode':'6758'}       
+    nYears=[2019,2019] #期間指定　年　以上以内  
+    settei(dict_cond,nYears)
     '''
     書類一覧項目{'JCN':'提出者法人番号', 'attachDocFlag':'代替書面・添付文書有無フラグ', 
      'currentReportReason':'臨報提出事由', 'disclosureStatus':'開示不開示区分',
@@ -61,7 +57,7 @@ if __name__=='__main__':
        'secCode':'提出者証券コード', 'seqNumber':'連番','subjectEdinetCode':'対象EDINETコード', 
        'submitDateTime':'提出日時', 'subsidiaryEdinetCode':'子会社EDINETコード',
        'withdrawalStatus':'取下区分', 'xbrlFlag':'XBRL有無フラグ'}
-    '書類種別コード'{10:'有価証券通知書',20:'変更通知書（有価証券通知書）',30:'有価証券届出書', 
+    書類種別コード{10:'有価証券通知書',20:'変更通知書（有価証券通知書）',30:'有価証券届出書', 
      40:'訂正有価証券届出書',50:'届出の取下げ願い',60:'発行登録通知書', 
      70:'変更通知書（発行登録通知書）',80:'発行登録書',90:'訂正発行登録書', 
      100:'発行登録追補書類',110:'発行登録取下届出書',120:'有価証券報告書', 
@@ -75,6 +71,6 @@ if __name__=='__main__':
      310:'対質問回答報告書',320:'訂正対質問回答報告書',330:'別途買付け禁止の特例を受けるための申出書', 
      340:'訂正別途買付け禁止の特例を受けるための申出書', 
      350:'大量保有報告書',360:'訂正大量保有報告書',370:'基準日の届出書',380:'変更の届出書'}
-    #docIDs=['S100DJ2G',]#['S100DAZ4']  
+    府令コード{} 
     '''
     

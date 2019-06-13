@@ -28,10 +28,9 @@ EDINETタクソノミは© Copyright 2014 Financial Services Agency, The Japanes
 #20180331以降 2018
 @author: Yusuke
 """
-#'jpcrp_cor'財務　'jplvh_cor'大量保有報告書
 #from lxml import objectify as ET
 from lxml import etree as ET
-import os
+#import os 
 import pandas as pd
 from collections import defaultdict
 import re
@@ -57,8 +56,10 @@ def get_label1(link_item):
     # get common taxonomy from link_base
     link_dict = defaultdict(list)
     #link_base file名から頭文字を抽出 element_id接頭語決定
-    index=os.path.basename(link_item).find('_')
-    prefix=os.path.basename(link_item)[0:index]+'_cor_'
+    #index=os.path.basename(link_item).find('_')
+    #prefix=os.path.basename(link_item)[0:index]+'_cor_'
+    index=str(Path(link_item).name).find('_')   
+    prefix=str(Path(link_item).name)[0:index]+'_cor_'
     #print(prefix)
     #https://stackoverflow.com/questions/10457564/error-failed-to-load-external-entity-when-using-python-lxml
     parser = ET.XMLParser(recover=True)
@@ -89,8 +90,9 @@ def parse_companyxml(company_file) :
         ns=root.nsmap
         ns['xml']='http://www.w3.org/XML/1998/namespace'
         #jpcrp030000-asr-001_E01737-000_2018-03-31_01_2018-06-29_lab.xml
-        prefix=os.path.basename(company_file)[0:15]+'_'+\
-                os.path.basename(company_file)[20:30]+'_'
+        #prefix=os.path.basename(company_file)[0:15]+'_'+\
+        #        os.path.basename(company_file)[20:30]+'_'
+        prefix=str(Path(company_file).name)[0:15]+'_'+str(Path(company_file).name)[20:30]+'_'
         for child in labels.findall('.//link:labelLink',ns) :
             for grand_child in child.iter():                
                 if grand_child.tag=='{http://www.xbrl.org/2003/linkbase}loc':
@@ -247,15 +249,19 @@ def xbrl_to_dataframe(xbrlfile) :
     '''
     #.xsd,_lab.xml,_pre.xml,_cal.xmlを探す
     
-    if not os.path.isdir('label') :
-        os.mkdir('label')  
+    #if not os.path.isdir('label') :
+    #    os.mkdir('label')
+    if not Path('label').exists():
+        Path('label').mkdir()  
     df_label = pd.DataFrame(index=[], columns=[])
     linklogs=linklog()  #過去の読込日を呼び出す     
     xsd_file=search_filename(xbrlfile,'.xsd')
     for link_item in get_label_links(xsd_file) :
-        label_name, xml = os.path.splitext(os.path.basename(link_item))
+        #label_name, xml = os.path.splitext(os.path.basename(link_item))
+        label_name=Path(link_item).stem
         label_name='./label/'+label_name+'.json'
-        if os.path.exists(label_name) :
+        #if os.path.exists(label_name) :
+        if Path(label_name).exists():
             df_label=df_label.append(pd.read_json(label_name))       
         elif link_item not in linklogs :
             temp_df=get_label1(link_item)            
@@ -302,7 +308,7 @@ def merge_df(df_all_label,df_facts,df_type) :
 def linklog():
     #読込linkを覚えておく
     linklogs=[] 
-    if os.path.exists('linklog.pkl') :
+    if Path('linklog.pkl').exists() :
         with open('linklog.pkl','rb') as log:
             linklogs=pickle.load(log)
     return linklogs
@@ -320,6 +326,7 @@ def add_label_string(df_xbrl,df_label) :
 if __name__=='__main__':      
     #初期化したいときは'linklog.pkl','labelフォルダー'削除
     save_path='d:\\data\\xbrl\\temp' #xbrl fileの基幹フォルダー
+    hdf_path='d:\\data\\xbrl\\edinetxbrl.h5' #xbrl 書類一覧HDF　保存先
     #save_path='d:\\data\\xbrl\\download\\edinet' #有報キャッチャー自分用
     docIDs=['S100EKNV','S100EUTL','S100D6OS','S100DKFI','S100DJ2G',]
     #docIDs=['S100DAZ4']#['S100DJ2G',]#['S100DAZ4']
@@ -334,7 +341,8 @@ if __name__=='__main__':
             df_xbrl=xbrl_to_dataframe(xbrlfile)
             #print(df_xbrl)        
             df_xbrl['amount']=df_xbrl['amount'].str[:3000] #excel cell 文字数制限   
-            xlsname, ext = os.path.splitext(os.path.basename(xbrlfile))
+            #xlsname, ext = os.path.splitext(os.path.basename(xbrlfile))
+            xlsname=Path(xbrlfile).stem
             print(xlsname)
             df_xbrl.to_excel(xlsname+'.xls',encoding='cp938')            
     else : print('xbrl file 見つかりません')
