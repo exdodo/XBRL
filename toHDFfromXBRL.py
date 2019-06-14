@@ -93,11 +93,13 @@ if __name__=='__main__':
     limited_save_path=save_path+limited_path_word
     dir_string='**/PublicDoc/*.xbrl' #'**/PublicDoc/*asr*E*.xbrl'
     data_path='d:\\data\\hdf\\samplexbrl.h5'#HDF保存先とファイル名
-    
-    #docIDの整合性を整える 過去にHDFかしたかjsonに記載のないものはHDF化しない
-    hdf_docIDs=docIDs_from_HDF(data_path) #HDF保存済み　docIDs
-    hdf_docIDs=[hdf_docID[0:8] for hdf_docID in hdf_docIDs] #Edinetコードだけにする        
-    df_json = pd.read_json('xbrldocs.json',dtype='object') #5年分約30万行
+    hdf_path='d:\\data\\xbrl\\edinetxbrl.h5' #xbrl 書類一覧HDF　保存先
+    #save_path='d:\\data\\xbrl\\download\\edinet' #有報キャッチャー自分用    
+    #docIDの整合性を整える 過去にHDF保存したかjsonに記載のないものはHDF化しない
+    hdf_docIDs=docIDs_from_HDF(data_path) #HDF保存済み　docIDs    
+    hdf_docIDs=[hdf_docID[0:8] for hdf_docID in hdf_docIDs] #追番を外しEdinetコードだけにする
+    df_json=pd.read_hdf(hdf_path,key='/index/edinetdocs')
+    #df_json=pd.read_json('xbrldocs.json',dtype='object') #5年分約30万行
     json_docIDs=df_json['docID'].to_list()    
     dict_docIDs=docIDs_from_directory(limited_save_path,dir_string)
     dir_docIDs=dict_docIDs.keys()

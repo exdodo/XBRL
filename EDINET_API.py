@@ -110,6 +110,8 @@ def main_jsons(hdf_path,last_day=date.today(),start_day=date.today()-timedelta(d
         json_file=str(json_path)+'\\datelogs.pkl'
         with open(json_file,'wb') as log_file:
             datelogs.sort()
+            if(len(datelogs)>(1826)) : #過去5年を超える日付は削除
+                del datelogs[0:len(datelogs)-1826]        
             pickle.dump(datelogs, log_file) 
     if len(docs_json)>0:        
         df_doc2=pd.io.json.json_normalize(docs_json) #To Dataframe From Json
