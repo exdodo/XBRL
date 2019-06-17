@@ -36,50 +36,52 @@ def docIDs_from_directory(save_path,dir_string):
     dic_docIDs = dict(zip( dl_docIDs,xbrl_file_names))
     return dic_docIDs
     
-def docIDs_to_HDF(save_path,dict_docIDs,df_json,data_path):
+def docIDs_to_HDF(save_path,h5xbrl,dict_docIDs,df_json):
     '''
     docIDsからxbrl fileのディレクトリーをもとめ、財務諸表が複数あれば（追番）全部求める
     '''    
+    print('xbrl To HDF writing...')
     for docID,xbrl_file_name in tqdm(dict_docIDs.items()) :        
         edinet_code=xbrl_file_name.split('_')[1]
         edinet_code=edinet_code.split('-')[0]
         #print(docID,xbrl_file_name)                     
         sDate=df_json[df_json['docID']==docID].submitDateTime.to_list()[0]             
         #追番処理 一つのdocIDで複数の財務諸表を提示
-        xbrl_path=save_path+'\\'+str(int(sDate[0:4]))+'\\'+\
+        xbrl_dir=save_path+'\\'+str(int(sDate[0:4]))+'\\'+\
             str(int(sDate[5:7]))+'\\'+str(int(sDate[8:10]))+'\\'\
             +docID+'\\'+docID+'\\XBRL\\PublicDoc\\'        
-        p_xbrl=Path(xbrl_path) #xbrl fileの数を求める
+        p_xbrl=Path(xbrl_dir) #xbrl fileの数を求める
         p_xbrlfiles=list(p_xbrl.glob('*.xbrl'))
         xbrl_file_names=[p.name for p in p_xbrlfiles]
         for xbrl_file_name in xbrl_file_names:
-            #xbrlfile=xbrl_path+xbrl_file_name
+            #xbrlfile=xbrl_dir+xbrl_file_name
             oiban=xbrl_file_name[27:30]
-            xbrlfile=xbrl_path+xbrl_file_name
+            xbrlfile=xbrl_dir+xbrl_file_name
             df_xbrl=xbrl_to_dataframe(xbrlfile)
             df_xbrl['amount']=df_xbrl['amount'].str.replace(' ','') #空白文字削除
             df_xbrl['amount']=df_xbrl['amount'].str[:220] #pytable制限
             # saveToHDF
-            df_xbrl.to_hdf(data_path,edinet_code + '/' + docID+'_'+oiban , format='table',
+            df_xbrl.to_hdf(h5xbrl,edinet_code + '/' + docID+'_'+oiban , format='table',
                           mode='a', data_columns=True, index=True, encoding='utf-8')                
     return
 def docIDs_from_HDF(data_path):
     docIDs=[]
     if Path(data_path).exists() :
         with h5py.File(data_path,'r') as f:
-            docIDs=[]
+            docIDs=[]            
             for edinetcode in f.keys() :
-                second_keys=list(f[edinetcode].keys())            
-                docIDs.append(second_keys)        
+                if edinetcode!='index' :
+                    second_keys=list(f[edinetcode].keys())            
+                    docIDs.append(second_keys)        
             docIDs=list(chain.from_iterable(docIDs))        
     return docIDs
 
 if __name__=='__main__':
     '''
-    ・ダウンロードしたXBRLファイルをHDFかするためのプログラム
+    ・ダウンロードしたXBRLファイルを一括してHDF化するためのプログラム
     ・テキストは225文字以上だとpytableの警告が出るので空白を削除して先頭から220文字
-    hdf_docIDs:HDFファイルに保存しているdocID
-    json_docIDs:EdinetからダウンロードしたdocID　基準になる
+    hdf_docIDs:HDFファイルに保存しているdocID(HDF fileのseccode以下のdocID)
+    json_docIDs:EdinetからダウンロードしたdocID　基準になる(HDF fileのindex/edinetdocsのdocID)
     dir_docIDs:'save_path'から求めたxbrlファイルをダウンロードしたdocID
     dict_docIDs:dir_docIDsと保存先ディレクトリーの辞書
     HDFに保存すべきdocIDをもとめる
@@ -87,31 +89,33 @@ if __name__=='__main__':
     2．common_docIDsからhdf_docIDs重ねれば削除
     3.残ったものがダウンロードすべきdocID
     '''
-    save_path='d:\\data\\xbrl\\temp' #xbrl fileの基幹フォルダー
-    #save_path='d:\\data\\xbrl\\download\\edinet' #有報キャッチャー自分用
+    save_path='d:\\data\\xbrl\\download\\edinet' #ダウンロードし解凍したxbrl file保存先基幹ファイル
+    h5xbrl='d:\\data\\hdf\\xbrl.h5'  #HDF file保存先
     limited_path_word='' #年指定　2014年4月なら'\\2014\\4' 2014年'\\2014'
     limited_save_path=save_path+limited_path_word
     dir_string='**/PublicDoc/*.xbrl' #'**/PublicDoc/*asr*E*.xbrl'
-    data_path='d:\\data\\hdf\\samplexbrl.h5'#HDF保存先とファイル名
-    hdf_path='d:\\data\\xbrl\\edinetxbrl.h5' #xbrl 書類一覧HDF　保存先
-    #save_path='d:\\data\\xbrl\\download\\edinet' #有報キャッチャー自分用    
+    print('calucalateing docID...')
     #docIDの整合性を整える 過去にHDF保存したかjsonに記載のないものはHDF化しない
-    hdf_docIDs=docIDs_from_HDF(data_path) #HDF保存済み　docIDs    
+    hdf_docIDs=docIDs_from_HDF(h5xbrl) #HDF保存済み　docIDs    
     hdf_docIDs=[hdf_docID[0:8] for hdf_docID in hdf_docIDs] #追番を外しEdinetコードだけにする
-    df_json=pd.read_hdf(hdf_path,key='/index/edinetdocs')
-    #df_json=pd.read_json('xbrldocs.json',dtype='object') #5年分約30万行
-    json_docIDs=df_json['docID'].to_list()    
+    print('HDF docIDS:'+str(len(hdf_docIDs)))
+    df_json=pd.read_hdf(h5xbrl,key='/index/edinetdocs')
+    json_docIDs=df_json['docID'].to_list()
+    print('jsob docIDs:'+str(len(json_docIDs)))    
     dict_docIDs=docIDs_from_directory(limited_save_path,dir_string)
     dir_docIDs=dict_docIDs.keys()
+    print('directory docIDs:'+str(len(dir_docIDs)))
     #json_docIDsとdir_docIDs 共通のリスト作成
     common_docIDs=list(set(json_docIDs) & set(dir_docIDs))
     #common_docIDsからhdf_docIDs重ねれば削除
     docIDs=list(set(common_docIDs) ^ set(hdf_docIDs))
     docIDs.sort()
+    print('To HDF docIDs='+str(len(docIDs)))
+    
     #リスト内包表記で書きたい＞＜
     dict_doc={}
     for docID in docIDs:
         if docID in dict_docIDs:         
             dict_doc[docID]=dict_docIDs[docID]    
-    docIDs_to_HDF(save_path,dict_doc,df_json,data_path)
+    docIDs_to_HDF(save_path,h5xbrl,dict_doc,df_json)
     

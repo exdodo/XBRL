@@ -124,18 +124,17 @@ def download_xbrl(df_json,save_path,docIDs):
             #print(error_docID)
 if __name__=='__main__':
     #-------------------------------------------------------------------------
-    save_path='d:\\data\\xbrl\\temp' #xbrl file保存先の基幹フォルダー
+    #save_path='d:\\data\\xbrl\\temp' #xbrl file保存先の基幹フォルダー
     hdf_path='d:\\data\\xbrl\\edinetxbrl.h5' #xbrl 書類一覧HDF　保存先
-    #save_path='d:\\data\\xbrl\\download\\edinet' #有報キャッチャー自分用
+    save_path='d:\\data\\xbrl\\download\\edinet' #有報キャッチャー自分用
     yuho=['030000'] #年次有価証券報告書 
     mkgp=['株式会社シティインデックス舞子', '株式会社オフィスサポート', '野村絢', '株式会社レノ', 
     '株式会社エスグラントコーポレーション', '中島章智', '株式会社ＡＴＲＡ', '株式会社リビルド',
      '株式会社南青山不動産', '鈴木俊英', '株式会社シティインデックスホスピタリティ', 
      '株式会社フォルティス', '三浦恵美', '村上世彰', '株式会社C&IHoldings', 
      '株式会社シティインデックスホールディングス'] #旧村上
-    nitto=['加藤幸美','株式会社Ａ.１','ヤマゲン証券','石川善光','田邊勝己']
     hitachi=['6501',6501,'６５０１','日立製作所'] #日立製作所       
-    seek_words=mkgp
+    seek_words=['Ｅｖｏ　Ｆｕｎｄ']
     #列指定したいならば書類一覧項目を下記にしるす　なければ[]
     seek_columns=['filerName','secCode','docDescription','subjectEdinetCode','docID']
     nYears=[2019,2019] #期間指定　年　以上以内      
