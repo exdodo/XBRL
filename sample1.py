@@ -47,6 +47,7 @@ def docIDsToHDF(docIDs,h5xbrl,save_path,df_docs):
             df_xbrl.to_hdf(h5xbrl,edinet_code + '/' + docID+'_'+oiban , format='table',
                           mode='a', data_columns=True, index=True, encoding='utf-8')  
     return
+
 if __name__=='__main__':
     h5xbrl='d:\\Data\\hdf\\xbrl.h5' #xbrlをHDF化したファイルの保存先
     save_path='d:\\data\\xbrl\\download\\edinet' #xbrl file保存先(自分用)
@@ -56,9 +57,9 @@ if __name__=='__main__':
     df_docs=pd.read_hdf(h5xbrl,'index/edinetdocs')
     df_docs=column_shape(df_docs) #dataframeを推敲
     holders=['株式会社レノ']#['Ｅｖｏ　Ｆｕｎｄ']#    
-    count=0
-    gross_holders=[]
+    count=0    
     for i in range(10): #10回以上繰り返して増えていくのは無限増殖の可能性あり
+        gross_holders=[]
         docIDs=select_docIDs_freeword(df_docs,holders,['filerName'])
         hdf_docIDs=docIDs_from_HDF(h5xbrl) #HDF保存済み　docIDs
         dl_docIDs=list(set(docIDs)-set(hdf_docIDs)) #集合 docIDのみに含まれる
