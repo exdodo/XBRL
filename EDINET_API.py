@@ -136,37 +136,8 @@ def main_jsons(h5XBRL,last_day=date.today(),start_day=date.today()-timedelta(day
         json_file=str(json_path)+'\\xbrlDocs.json'
         df_docs.to_json(json_file)
     return         
-def restoreHDFfromJSON(h5XBRL):
-    p=Path(h5XBRL)
-    json_path=p.parent.resolve()           
-    json_file=str(json_path)+'\\xbrlDocs.json'
-    print(h5XBRL)
-    print(json_file)
-    df=pd.read_json(json_file)
-    df.to_hdf(h5XBRL,'index/edinetdocs',mode='w',format='table',data_columns=True)    
 
-def restoreHDFfromDatelog(h5XBRL):    
-    p=Path(h5XBRL)
-    json_path=p.parent.resolve()    
-    datelog_file=str(json_path)+'\\datelog.pkl'
-    print(datelog_file)
-    if Path(datelog_file).exists() :
-        with open(datelog_file,'rb') as log:
-            datelogs=pickle.load(log)            
-            datelogs.sort() 
-            print(datelogs[-5:])        
-        with h5py.File(h5XBRL, 'a') as h5File:            
-            if 'index' in h5File.keys() :   #上書き処理のため元dataset削除
-                if 'datelogs' in h5File['index'].keys() :         
-                    del h5File['index/datelogs']               
-            
-            print(h5File.keys())
-            print(h5File['index'].keys())
-            h5File.create_dataset('index/datelogs', data=np.array(datelogs, dtype='S10'))
-            print(h5File['index'].keys())
-            h5File.flush() 
-            h5File.close()       
-    return
+
 if __name__=='__main__':
     '''
     edinetxbrl.h5 HDF file
@@ -175,7 +146,6 @@ if __name__=='__main__':
     '''
     h5XBRL='d:\\data\\hdf\\xbrl.h5'
     main_jsons(h5XBRL) #過去5年分の書類一覧HDF形式で保存
-    #restoreHDFfromJSON(h5XBRL)
-    #restoreHDFfromDatelog(h5XBRL)
+    
     
     

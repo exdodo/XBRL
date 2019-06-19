@@ -124,9 +124,13 @@ def download_xbrl(df_json,save_path,docIDs):
             #print(error_docID)
 if __name__=='__main__':
     #-------------------------------------------------------------------------
-    #save_path='d:\\data\\xbrl\\temp' #xbrl file保存先の基幹フォルダー
-    hdf_path='d:\\data\\xbrl\\edinetxbrl.h5' #xbrl 書類一覧HDF　保存先
+      
     save_path='d:\\data\\xbrl\\download\\edinet' #有報キャッチャー自分用
+    hdf_path='d:\\data\\xbrl\\edinetxbrl.h5' #xbrl 書類一覧HDF　保存先
+    #test用
+    #save_path='d:\\data\\xbrl\\temp' #xbrl file保存先の基幹フォルダー 
+    #hdf_path='d:\\data\\test\\edinetxbrl.h5'
+    
     yuho=['030000'] #年次有価証券報告書 
     mkgp=['株式会社シティインデックス舞子', '株式会社オフィスサポート', '野村絢', '株式会社レノ', 
     '株式会社エスグラントコーポレーション', '中島章智', '株式会社ＡＴＲＡ', '株式会社リビルド',

@@ -64,17 +64,16 @@ def docIDs_to_HDF(save_path,h5xbrl,dict_docIDs,df_json):
             df_xbrl.to_hdf(h5xbrl,edinet_code + '/' + docID+'_'+oiban , format='table',
                           mode='a', data_columns=True, index=True, encoding='utf-8')                
     return
-def docIDs_from_HDF(data_path):
-    docIDs=[]
-    if Path(data_path).exists() :
-        with h5py.File(data_path,'r') as f:
-            docIDs=[]            
-            for edinetcode in f.keys() :
-                if edinetcode!='index' :
-                    second_keys=list(f[edinetcode].keys())            
-                    docIDs.append(second_keys)        
-            docIDs=list(chain.from_iterable(docIDs))        
-    return docIDs
+def docIDs_from_HDF(h5xbrl):
+    hdf_docIDs=[]
+    if Path(h5xbrl).exists() :
+        with h5py.File(h5xbrl, 'r') as h5File:
+            key_list1=h5File.keys()
+            key_list2=[ list(h5File[key].keys()) for key in key_list1 if key!='index']
+            key_list2=list(chain.from_iterable(key_list2)) #flatten
+            hdf_docIDs=[ key[0:8] for key in key_list2] #追番削除
+            hdf_docIDs=list(set(hdf_docIDs)) #unique
+    return hdf_docIDs
 
 if __name__=='__main__':
     '''
@@ -91,18 +90,21 @@ if __name__=='__main__':
     '''
     save_path='d:\\data\\xbrl\\download\\edinet' #ダウンロードし解凍したxbrl file保存先基幹ファイル
     h5xbrl='d:\\data\\hdf\\xbrl.h5'  #HDF file保存先
+    #test
+    #h5xbrl='d:\\data\\test\\testxbrl.h5'
+    #save_path='d:\\data\\xbrl\\temp' #xbrl file保存先の基幹フォルダー 
+
     limited_path_word='' #年指定　2014年4月なら'\\2014\\4' 2014年'\\2014'
     limited_save_path=save_path+limited_path_word
     dir_string='**/PublicDoc/*.xbrl' #'**/PublicDoc/*asr*E*.xbrl'
     print('calucalateing docID...')
     #docIDの整合性を整える 過去にHDF保存したかjsonに記載のないものはHDF化しない
-    hdf_docIDs=docIDs_from_HDF(h5xbrl) #HDF保存済み　docIDs    
-    hdf_docIDs=[hdf_docID[0:8] for hdf_docID in hdf_docIDs] #追番を外しEdinetコードだけにする
+    hdf_docIDs=docIDs_from_HDF(h5xbrl) #HDF group名から求める　docIDs        
     print('HDF docIDS:'+str(len(hdf_docIDs)))
-    df_json=pd.read_hdf(h5xbrl,key='/index/edinetdocs')
+    df_json=pd.read_hdf(h5xbrl,key='/index/edinetdocs') #edinetからｄｌした書類一覧
     json_docIDs=df_json['docID'].to_list()
-    print('jsob docIDs:'+str(len(json_docIDs)))    
-    dict_docIDs=docIDs_from_directory(limited_save_path,dir_string)
+    print('json docIDs:'+str(len(json_docIDs)))    
+    dict_docIDs=docIDs_from_directory(limited_save_path,dir_string) #xbrl file
     dir_docIDs=dict_docIDs.keys()
     print('directory docIDs:'+str(len(dir_docIDs)))
     #json_docIDsとdir_docIDs 共通のリスト作成

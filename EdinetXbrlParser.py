@@ -325,9 +325,13 @@ def add_label_string(df_xbrl,df_label) :
 
 if __name__=='__main__':      
     #初期化したいときは'linklog.pkl','labelフォルダー'削除
-    save_path='d:\\data\\xbrl\\temp' #xbrl fileの基幹フォルダー
-    hdf_path='d:\\data\\xbrl\\edinetxbrl.h5' #xbrl 書類一覧HDF　保存先
-    #save_path='d:\\data\\xbrl\\download\\edinet' #有報キャッチャー自分用
+    save_path='d:\\data\\xbrl\\download\\edinet' #有報キャッチャー自分用
+    hdf_path='d:\\data\\xbrl\\xbrl.h5' #xbrl 書類一覧HDF　保存先
+    #test
+    #save_path='d:\\data\\xbrl\\temp' #xbrl fileの基幹フォルダー
+    #hdf_path='d:\\data\\xbrl\\edinetxbrl.h5' #xbrl 書類一覧HDF　保存先
+    
+    
     docIDs=['S100EKNV','S100EUTL','S100D6OS','S100DKFI','S100DJ2G',]
     #docIDs=['S100DAZ4']#['S100DJ2G',]#['S100DAZ4']
     #確認書以外はOK 確認書はxbrlがない
