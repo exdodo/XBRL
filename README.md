@@ -3,7 +3,7 @@
 
 ---注意：過去５年分のEDINETファイル情報は30万以上あり2013年からの年次有価証券報告書だけで1TBを超えます。Disk空き容量注意---
 EDINETのXBRLをPYTHONの勉強がてらいじってみる。
-2019年3月からEDINETがAPIに対応しXBRLが使いやすくなる。その活用
+2019年3月からEDINETがAPIに対応しXBRLが使いやすくなる。その活用を考える。
 
 EDINET_API.py:q(-::-) 〆(-：：-) (-：：-)P ｼﾞｪｲｿﾝ
 
@@ -13,11 +13,13 @@ edinetからAPIで前日までの提出書類一覧情報(json形式)をHDF FILE
 select_docIDs_freeword.py:∪・ω・∪ドッグ
 
 HDF FILEから検索用語を部分一致の検索でdocIDsを抽出しxbrlをdownloadし保存
-他にも様々な関数を追加しているので将来は名前を変えてクラス化したい。
+他にも様々な関数を追加し将来は名前を変えてクラス化したい。
 
 select_docIDs_docType.py:👨‍⚕️ドク
 
-HDF FILEから年次有価証券報告書を一括してxbrlを取得するため作成。
+年次有価証券報告書を一括してdownloadしxbrlを取得するため作成。
+ダウンロードには何日もかかるはず（私は手元にxbrl　fileを持っていたので全実行はしていない）。
+実行には要注意（ネットにも負担、ＤＩＳＫ容量も必要）。
 
 EdinetXbrlParser.py:
 
