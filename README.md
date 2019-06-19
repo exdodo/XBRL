@@ -18,7 +18,7 @@ select_docIDs_docType.py:👨‍⚕️ドク
 
 HDF FILEから年次有価証券報告書を一括してxbrlを取得するため作成。
 
-XbrlParser.py:
+EdinetXbrlParser.py:
 
 downloadしたXBRLをデーターフレームへ。
 IFRS形式で提出している企業の連結情報がとれないので調べてみたら、仕様が糞だった（参考URL：https://blog.boost-up.net/）
