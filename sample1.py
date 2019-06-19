@@ -55,7 +55,7 @@ if __name__=='__main__':
     #save_path='d:\\data\\xbrl\\temp' #xbrl file保存先の基幹フォルダー
     df_docs=pd.read_hdf(h5xbrl,'index/edinetdocs')
     df_docs=column_shape(df_docs) #dataframeを推敲
-    holders=['Ｅｖｏ　Ｆｕｎｄ']#['株式会社レノ']#    
+    holders=['株式会社レノ']#['Ｅｖｏ　Ｆｕｎｄ']#    
     count=0
     gross_holders=[]
     for i in range(10): #10回以上繰り返して増えていくのは無限増殖の可能性あり
