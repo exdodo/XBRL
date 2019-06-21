@@ -30,53 +30,34 @@ EDINETタクソノミは© Copyright 2014 Financial Services Agency, The Japanes
 import pandas as pd
 import glob
 from pathlib import Path
-from EdinetXbrlParser import xbrl_to_dataframe,seek_from_docID
-
-def ToExcel_finace_sheets(df_fs,filename) :
-    df_fs=df_fs[~df_fs['context_ref'].str.contains('Prior')]
-    df_fs=df_fs.dropna(subset=['role_id'],how='any')
-    #有価証券報告書　list作成
-    rols=pd.unique(df_fs['role_id'])
-    print(rols)    
-    with pd.ExcelWriter(mandatory_year(filename) + '_' + edinet_code(filename) + '.xlsx') as writer:        
-        for rol in rols:  # assuming they're already DataFrames
-                df_name = df_fs[df_fs['role_id'] == rol]
-                df_name=df_name.sort_values(['from_element_id','order'])
-                df_name=df_name[['from_string', 'label_string', 'amount','context_ref']] 
-                df_name.to_excel(writer, sheet_name=rol[4:34], index=False)
-        writer.save()  # we only need to save to disk at the very end!
-def mandatory_year(filename):
-    
-    #https://srbrnote.work/archives/1315
-    # 2018年版EDINETタクソノミの公表について https://www.fsa.go.jp/search/20180228.html
-    # 報告書インスタンス作成ガイドライン
-    # 4-2-4 XBRL インスタンスファイル
-    # jp{府令略号}{様式番号}-{報告書略号}-{報告書連番(3 桁)}_{EDINETコード又はファンドコード}-
-    # {追番(3 桁)}_{報告対象期間期末日|報告義務発生日}_{報告書提出回数(2 桁)}_{報告書提出日}.xbrl
-    # 0         1         2         3         4         5         6
-    # 0123456789012345678901234567890123456789012345678901234567890
-    # jpcrp030000-asr-001_E00000-000_2017-03-31_01_2017-06-29.xbrl
-    #20180331以降 2018
-    #20170331
-    #20160331
-    #20150331
-    #20140331
-    #20130331    
-    p=Path(filename)
-    return p.name[-29:-25] # 報告書義務発生年
-
-def edinet_code(filename):
-    p=Path(filename)
-    return p.name[20:26]
+import h5py
+from select_docIDs_freeword import column_shape
+def ToExcel_finace_sheets(df_docs,docIDs,h5xbrl) :
+    for docID in docIDs :
+        edinet_codes=df_docs[df_docs['docID']==docID]['edinetCode'].tolist()
+        edinet_code=edinet_codes[0]
+        group_name=edinet_code+'/'+docID+'_000'        
+        with h5py.File(h5xbrl,'r') as h5File :
+                if edinet_code in h5File.keys() :
+                        print(edinet_code)
+                        #print(list(h5File[edinet_code].keys()))
+                        df_fs=pd.read_hdf(h5xbrl,group_name)    
+                        df_fs['amount']=df_fs['amount'].str[:3000]   
+                        df_fs=df_fs[~df_fs['context_ref'].str.contains('Prior')]
+                        df_fs=df_fs.dropna(subset=['role_id'],how='any')
+                        #有価証券報告書　list作成
+                        rols=pd.unique(df_fs['role_id'])
+                        parent_dir=str(Path(h5xbrl).parents[0])+'\\'
+                        with pd.ExcelWriter(parent_dir+edinet_code+'_'+docID + '.xlsx') as writer:        
+                                for rol in rols:  # assuming they're already DataFrames
+                                        df_name = df_fs[df_fs['role_id'] == rol]
+                                        df_name=df_name.sort_values(['from_element_id','order'])
+                                        df_name=df_name[['from_string', 'label_string', 'amount','context_ref']] 
+                                        df_name.to_excel(writer, sheet_name=rol[4:34], index=False)
+                                writer.save()  # we only need to save to disk at the very end!
 if __name__=='__main__':    
-    save_path='d:\\data\\xbrl\\temp'
-    docIDs=['S100DJ2G',]
-    filenames=[]
-    dirls=seek_from_docID(save_path,docIDs)
-    for dirt in dirls: 
-        for file_name in glob.glob(dirt+'\\*.xbrl') :
-            filenames.append(file_name)#ここにXBRL File 指定
-    xbrlfile=filenames[0]    
-    df_fs=xbrl_to_dataframe(xbrlfile)
-    df_fs['amount']=df_fs['amount'].str[:3000]   
-    ToExcel_finace_sheets(df_fs,xbrlfile)
+    h5xbrl='d:\\Data\\hdf\\xbrl.h5' #xbrlをHDF化したファイルの保存先
+    df_docs=pd.read_hdf(h5xbrl,'index/edinetdocs')
+    df_docs=column_shape(df_docs) #dataframeを推敲
+    docIDs=['S100G21U',]
+    ToExcel_finace_sheets(df_docs,docIDs,h5xbrl)

@@ -223,12 +223,12 @@ def get_xml_attrib_value( node, attrib):
     else:
         return None
 
-def seek_from_docIDs(save_path,docIDs):
+def seek_from_docIDs(save_path,docIDs,h5xbrl):
     '''
     docIDからXBRLファイルのディレクトリーリストを取得
     
     '''    
-    df_json=pd.read_json('xbrldocs.json',dtype='object') #5年分約30万行
+    df_json=pd.read_hdf(h5xbrl,key='/index/edinetdocs') #edinetからｄｌした書類一覧のdocIDs
     df_json = column_shape(df_json) #dataframeを推敲    
     download_xbrl(df_json,save_path,docIDs) #XBRLファイルをなければ取得
     dirls=[]
@@ -326,17 +326,17 @@ def add_label_string(df_xbrl,df_label) :
 if __name__=='__main__':      
     #初期化したいときは'linklog.pkl','labelフォルダー'削除
     save_path='d:\\data\\xbrl\\download\\edinet' #有報キャッチャー自分用
-    hdf_path='d:\\data\\xbrl\\xbrl.h5' #xbrl 書類一覧HDF　保存先
+    hdf_path='d:\\data\\hdf\\xbrl.h5' #xbrl 書類一覧HDF　保存先
     #test
     #save_path='d:\\data\\xbrl\\temp' #xbrl fileの基幹フォルダー
     #hdf_path='d:\\data\\xbrl\\edinetxbrl.h5' #xbrl 書類一覧HDF　保存先
     
     
-    docIDs=['S100EKNV','S100EUTL','S100D6OS','S100DKFI','S100DJ2G',]
+    docIDs=['S100FYT6',]
     #docIDs=['S100DAZ4']#['S100DJ2G',]#['S100DAZ4']
     #確認書以外はOK 確認書はxbrlがない
     filenames=[]
-    dirls=seek_from_docIDs(save_path,docIDs)    
+    dirls=seek_from_docIDs(save_path,docIDs,hdf_path)
     for dir_text in dirls: 
         for file_name in glob.glob(dir_text+'\\*.xbrl') :
             filenames.append(file_name)#ここにXBRL File 指定
