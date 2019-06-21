@@ -7,6 +7,7 @@ from select_docIDs_freeword import select_docIDs_freeword
 from select_docIDs_freeword import column_shape
 from select_docIDs_freeword import download_xbrl
 from toHDFfromXBRL import docIDs_from_HDF
+from toHDFfromXBRL import docIDsToHDF 
 from  EdinetXbrlParser import xbrl_to_dataframe
 import h5py
 from pathlib import Path
@@ -24,29 +25,7 @@ def collect_holders(docIDs,df_docs,xbrl_path) :
     holders=list(chain.from_iterable(holders))  #flatten
     #holders=list(set(holders)) #unique
     return holders
-def docIDsToHDF(docIDs,h5xbrl,save_path,df_docs):
-    print('docIDs to HDF file...')
-    sr_docs=df_docs.set_index('docID')['edinetCode']
-    for docID in docIDs :
-        edinet_code=sr_docs[docID][0]
-        sDate=df_docs[df_docs['docID']==docID].submitDateTime.to_list()[0]
-        #追番処理 一つのdocIDで複数の財務諸表を提示
-        xbrl_dir=save_path+'\\'+str(int(sDate[0:4]))+'\\'+\
-            str(int(sDate[5:7]))+'\\'+str(int(sDate[8:10]))+'\\'\
-            +docID+'\\'+docID+'\\XBRL\\PublicDoc\\'        
-        p_xbrl=Path(xbrl_dir) #xbrl fileの数を求める
-        p_xbrlfiles=list(p_xbrl.glob('*.xbrl'))
-        xbrl_file_names=[p.name for p in p_xbrlfiles]
-        for xbrl_file_name in xbrl_file_names:
-            oiban=xbrl_file_name[27:30]
-            xbrlfile=xbrl_dir+xbrl_file_name
-            df_xbrl=xbrl_to_dataframe(xbrlfile)
-            df_xbrl['amount']=df_xbrl['amount'].str.replace(' ','') #空白文字削除
-            df_xbrl['amount']=df_xbrl['amount'].str[:220] #pytable制限
-            # saveToHDF
-            df_xbrl.to_hdf(h5xbrl,edinet_code + '/' + docID+'_'+oiban , format='table',
-                          mode='a', data_columns=True, index=True, encoding='utf-8')  
-    return
+
 
 if __name__=='__main__':
     h5xbrl='d:\\Data\\hdf\\xbrl.h5' #xbrlをHDF化したファイルの保存先
