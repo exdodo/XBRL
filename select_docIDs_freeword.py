@@ -4,19 +4,25 @@ Created on Tue May 14 07:33:55 2019
 https://cortyuming.hateblo.jp/entry/2015/12/26/085736
 @author: Yusuke
 """
+import unicodedata
+import zipfile
+from datetime import datetime
+from io import BytesIO
+from itertools import chain
+from pathlib import Path
+from time import sleep
+
+import h5py
 import pandas as pd
 import requests
 import urllib3
-from urllib3.exceptions import InsecureRequestWarning
-urllib3.disable_warnings(InsecureRequestWarning) #verify=False対策
-from time import sleep
-from EDINET_API import main_jsons
-import zipfile
-import io
 from tqdm import tqdm
-from pathlib import Path
-import unicodedata
-from datetime import datetime
+from urllib3.exceptions import InsecureRequestWarning
+
+from EDINET_API import main_jsons
+from EdinetXbrlParser import xbrl_to_dataframe, zipParser
+
+urllib3.disable_warnings(InsecureRequestWarning) #verify=False対策
 def select_dict_docIDs(df,seek_word):
     #辞書にして抽出
     df=df.set_index('docID')
@@ -53,6 +59,7 @@ def select_docIDs_freeword(df,seek_words=['トヨタ自動車'],seek_columns=[])
 def column_shape(df,nYears=[]) :
     if nYears==[] :
         nYears=[2014,int(datetime.now().year)]
+    
     #submitDateTime 日付型へ
     df['dtDateTime']=pd.to_datetime(df['submitDateTime']) #obj to datetime
     df['dtDate']=df['dtDateTime'].dt.date #時刻を丸める　normalize round resample date_range
@@ -71,7 +78,7 @@ def column_shape(df,nYears=[]) :
     #docIDだけあり他がｎｕｌｌ（諸般の事情で削除された）が2000近くあるから削除
     df=df.dropna(subset=['submitDateTime'])
     df=df.sort_values('submitDateTime')
-    #df=df[df['xbrlFlag']==1] #xbrl fileだけ扱う         
+    df=df[df['xbrlFlag']=='1'] #xbrl fileだけ扱う         
     return df   
 
 def display_From_docIDS(df,docIDs) :
@@ -112,7 +119,7 @@ def download_xbrl(df_json,save_path,docIDs):
                 res = requests.get(url, params=params,verify=False,timeout=3.5, headers=headers)            
                 sleep(1)
                 if 'stream' in res.headers['Content-Type'] :
-                    with zipfile.ZipFile(io.BytesIO(res.content)) as existing_zip:        
+                    with zipfile.ZipFile(BytesIO(res.content)) as existing_zip:        
                         existing_zip.extractall(file_dir)                    
                 else :
                     error_docIDs.append(docID)
@@ -123,6 +130,96 @@ def download_xbrl(df_json,save_path,docIDs):
         with open('log.txt', mode='w') as f:
             f.writelines(error_docIDs)
             #print(error_docID)
+def directHdfFromZIP(df_json,docIDs,h5xbrl):
+    print('zip to HDF...')
+    hdf_docIDs=docIDs_from_HDF(h5xbrl)
+    docIDs=list(set(docIDs)-set(hdf_docIDs))
+    sr_docs=df_json.set_index('docID')['edinetCode'] #dataframe to Series print(sr_docs['S100FSTI'])
+    if len(docIDs)==0 :
+        return
+    for docID in tqdm(docIDs) :                 
+        #docIDsからdataframe 抽出
+        edinet_code=sr_docs[docID]        
+        #flag=df_json[df_json['docID']==docID].xbrlFlag.to_list()[0]                       
+        #書類取得
+        url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents/'+docID
+        params = { 'type': 1} #1:zip 2 pdf
+        headers = {'User-Agent': 'add mail address'}            
+        res = requests.get(url, params=params,verify=False,timeout=3.5, headers=headers)
+        print(res.headers)            
+        sleep(1)
+        if 'stream' in res.headers['Content-Type'] :
+            with zipfile.ZipFile(BytesIO(res.content)) as existing_zip:
+                    #files=existing_zip.infolist()
+                    files=existing_zip.namelist()        
+                    files=[i for i in files if 'XBRL/PublicDoc/' in i ]
+                    count_files=[ i for i in files if '.xbrl' in i ]                   
+                    for i in range(len(count_files)) :
+                        if i<9:
+                            oiban='00'+str(i+1)
+                        elif i>=9 and i<99:
+                            oiban='0'+str(i+1)
+                        elif i>=99 :
+                            oiban=str(i+1)
+                        print(oiban)
+                        sOiban='-'+oiban+'_'
+                        #print(xbrlfiles[i][31:34])
+                        xbrlfile=[i for i in files if '.xbrl' in i and sOiban in i][0]
+                        bXbrl=BytesIO(existing_zip.read(xbrlfile))
+                        xsdfile=[i for i in files if '.xsd' in i and sOiban in i][0]
+                        bXsd=BytesIO(existing_zip.read(xsdfile))
+                        typefile=[i for i in files if '_pre.xml' in i and sOiban in i][0]
+                        bType=BytesIO(existing_zip.read(typefile))
+                        companyfile=[i for i in files if '_lab.xml' in i and sOiban in i][0]
+                        bCompany=BytesIO(existing_zip.read(companyfile))
+                        company_file_name=companyfile.split('/')[-1]
+                        df=zipParser(bXbrl,bXsd,bType,bCompany,company_file_name)
+                        print(df.head())
+                        # saveToHDF
+                        df.to_hdf(h5xbrl,edinet_code + '/' + docID+'_'+oiban , format='table',
+                          mode='a', data_columns=True, index=True, encoding='utf-8')                         
+    return
+def docIDsToHDF(docIDs,h5xbrl,save_path,df_docs):
+    sr_docs=df_docs.set_index('docID')['edinetCode']
+    for docID in tqdm(docIDs) :
+        edinet_code=sr_docs[docID][0]
+        sDate=df_docs[df_docs['docID']==docID].submitDateTime.to_list()[0]
+        #追番処理 一つのdocIDで複数の財務諸表を提示
+        xbrl_dir=save_path+'\\'+str(int(sDate[0:4]))+'\\'+\
+            str(int(sDate[5:7]))+'\\'+str(int(sDate[8:10]))+'\\'\
+            +docID+'\\'+docID+'\\XBRL\\PublicDoc\\'        
+        p_xbrl=Path(xbrl_dir) #xbrl fileの数を求める
+        p_xbrlfiles=list(p_xbrl.glob('*.xbrl'))
+        xbrl_file_names=[p.name for p in p_xbrlfiles]
+        for xbrl_file_name in xbrl_file_names:
+            oiban=xbrl_file_name[27:30]
+            xbrlfile=xbrl_dir+xbrl_file_name
+            df_xbrl=xbrl_to_dataframe(xbrlfile)
+            df_xbrl['amount']=df_xbrl['amount'].str.replace(' ','') #空白文字削除
+            df_xbrl['amount']=df_xbrl['amount'].str[:220] #pytable制限
+            # saveToHDF
+            df_xbrl.to_hdf(h5xbrl,edinet_code + '/' + docID+'_'+oiban , format='table',
+                          mode='a', data_columns=True, index=True, encoding='utf-8')       
+    return
+def docIDs_from_directory(save_path,dir_string):
+    p_dir = Path(save_path)
+    #xbrlファイルのあるディレクトリーのみを抽出 年次有価証券報告書('asr')
+    p_winpath=list(p_dir.glob(dir_string)) 
+    dl_docIDs=[docID.parents[2].name for docID in p_winpath] #一個上parents[0]
+    xbrl_file_names=[p.name for p in p_winpath if p.is_file()] #ファイル名（basename）のみを抽出    
+    dic_docIDs = dict(zip( dl_docIDs,xbrl_file_names))
+    return dic_docIDs
+
+def docIDs_from_HDF(h5xbrl):
+    hdf_docIDs=[]
+    if Path(h5xbrl).exists() :
+        with h5py.File(h5xbrl, 'r') as h5File:
+            key_list1=h5File.keys()
+            key_list2=[ list(h5File[key].keys()) for key in key_list1 if key!='index']
+            key_list2=list(chain.from_iterable(key_list2)) #flatten
+            hdf_docIDs=[ key[0:8] for key in key_list2] #追番削除
+            hdf_docIDs=list(set(hdf_docIDs)) #unique
+    return hdf_docIDs
 if __name__=='__main__':
     #-------------------------------------------------------------------------
       
@@ -139,7 +236,7 @@ if __name__=='__main__':
      '株式会社フォルティス', '三浦恵美', '村上世彰', '株式会社C&IHoldings', 
      '株式会社シティインデックスホールディングス'] #旧村上
     hitachi=['6501',6501,'６５０１','日立製作所'] #日立製作所       
-    seek_words=['S100FWSV']#['Ｅｖｏ　Ｆｕｎｄ']
+    seek_words=mkgp #['S100FWSV']#['Ｅｖｏ　Ｆｕｎｄ']
     #列指定したいならば書類一覧項目を下記にしるす　なければ[]
     seek_columns=['filerName','secCode','docDescription','subjectEdinetCode','docID']
     nYears=[2019,2019] #期間指定　年　以上以内      
@@ -183,4 +280,3 @@ if __name__=='__main__':
      350:'大量保有報告書',360:'訂正大量保有報告書',370:'基準日の届出書',380:'変更の届出書'}
     #docIDs=['S100DJ2G',]#['S100DAZ4']  
     '''
-    

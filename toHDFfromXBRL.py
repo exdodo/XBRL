@@ -21,56 +21,17 @@ o'reilly『Python and HDF5』
     # 0123456789012345678901234567890123456789012345678901234567890
     # jpcrp030000-asr-001_E00000-000_2017-03-31_01_2017-06-29.xbrl
 
-from  EdinetXbrlParser import xbrl_to_dataframe
-from select_docIDs_freeword import column_shape
-from select_docIDs_freeword import download_xbrl
-from pathlib import Path
-import pandas as pd
-import h5py
-from itertools import chain
-from tqdm import tqdm
 import datetime
-def docIDs_from_directory(save_path,dir_string):
-    p_dir = Path(save_path)
-    #xbrlファイルのあるディレクトリーのみを抽出 年次有価証券報告書('asr')
-    p_winpath=list(p_dir.glob(dir_string)) 
-    dl_docIDs=[docID.parents[2].name for docID in p_winpath] #一個上parents[0]
-    xbrl_file_names=[p.name for p in p_winpath if p.is_file()] #ファイル名（basename）のみを抽出    
-    dic_docIDs = dict(zip( dl_docIDs,xbrl_file_names))
-    return dic_docIDs
+from pathlib import Path
 
-def docIDs_from_HDF(h5xbrl):
-    hdf_docIDs=[]
-    if Path(h5xbrl).exists() :
-        with h5py.File(h5xbrl, 'r') as h5File:
-            key_list1=h5File.keys()
-            key_list2=[ list(h5File[key].keys()) for key in key_list1 if key!='index']
-            key_list2=list(chain.from_iterable(key_list2)) #flatten
-            hdf_docIDs=[ key[0:8] for key in key_list2] #追番削除
-            hdf_docIDs=list(set(hdf_docIDs)) #unique
-    return hdf_docIDs
-def docIDsToHDF(docIDs,h5xbrl,save_path,df_docs):
-    sr_docs=df_docs.set_index('docID')['edinetCode']
-    for docID in tqdm(docIDs) :
-        edinet_code=sr_docs[docID][0]
-        sDate=df_docs[df_docs['docID']==docID].submitDateTime.to_list()[0]
-        #追番処理 一つのdocIDで複数の財務諸表を提示
-        xbrl_dir=save_path+'\\'+str(int(sDate[0:4]))+'\\'+\
-            str(int(sDate[5:7]))+'\\'+str(int(sDate[8:10]))+'\\'\
-            +docID+'\\'+docID+'\\XBRL\\PublicDoc\\'        
-        p_xbrl=Path(xbrl_dir) #xbrl fileの数を求める
-        p_xbrlfiles=list(p_xbrl.glob('*.xbrl'))
-        xbrl_file_names=[p.name for p in p_xbrlfiles]
-        for xbrl_file_name in xbrl_file_names:
-            oiban=xbrl_file_name[27:30]
-            xbrlfile=xbrl_dir+xbrl_file_name
-            df_xbrl=xbrl_to_dataframe(xbrlfile)
-            df_xbrl['amount']=df_xbrl['amount'].str.replace(' ','') #空白文字削除
-            df_xbrl['amount']=df_xbrl['amount'].str[:220] #pytable制限
-            # saveToHDF
-            df_xbrl.to_hdf(h5xbrl,edinet_code + '/' + docID+'_'+oiban , format='table',
-                          mode='a', data_columns=True, index=True, encoding='utf-8')       
-    return
+import pandas as pd
+from tqdm import tqdm
+
+from EdinetXbrlParser import xbrl_to_dataframe
+from select_docIDs_freeword import (column_shape, docIDs_from_directory,
+                                    docIDs_from_HDF, docIDsToHDF,
+                                    download_xbrl)
+
 if __name__=='__main__':
     '''
     ・ダウンロードしたXBRLファイルを一括してHDF化するためのプログラム
@@ -106,7 +67,6 @@ if __name__=='__main__':
     hdf_docIDs=docIDs_from_HDF(h5xbrl) #HDF group名から求める　docIDs        
     print('HDF docIDS:'+str(len(hdf_docIDs)))
     df_json=pd.read_hdf(h5xbrl,key='/index/edinetdocs') #edinetからｄｌした書類一覧のdocIDs
-    df_json=df_json[df_json['xbrlFlag']==1] #xbrl fileだけ扱う 
     df_json=column_shape(df_json)
     df_json=df_json[df_json['dtDate']>=start_date]
     df_json=df_json[df_json['dtDate']<end_date]
@@ -139,4 +99,3 @@ if __name__=='__main__':
     df_json=df_json[df_json['docID']=='S100FYT6']
     print(df_json['docTypeCode'])
     '''
-    

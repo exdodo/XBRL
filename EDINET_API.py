@@ -14,21 +14,22 @@ HDF関連
 
 @author: Yusuke
 """
-import pandas as pd
-import numpy as np
-import h5py
-from datetime import date,timedelta
-import requests
-import urllib3
-from urllib3.exceptions import InsecureRequestWarning
-urllib3.disable_warnings(InsecureRequestWarning) #verify=False対策
-from itertools import chain
-from time import sleep
-from pathlib import Path
-import pickle
-from tqdm import tqdm
 import json
 import pickle
+from datetime import date, timedelta
+from itertools import chain
+from pathlib import Path
+from time import sleep
+
+import h5py
+import numpy as np
+import pandas as pd
+import requests
+import urllib3
+from tqdm import tqdm
+from urllib3.exceptions import InsecureRequestWarning
+
+urllib3.disable_warnings(InsecureRequestWarning) #verify=False対策
 
 def request_json(sdt,datelogs):    
     url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents.json'
@@ -74,7 +75,7 @@ def json_shaping(df):
     df=df.dropna(subset=['submitDateTime'])#docIDだけあり他がｎｕｌｌ（諸般の事情で削除された）書類）が2000近くあるから削除
     df=df.sort_values('submitDateTime')#sort
     df.reset_index(drop=True, inplace=True) #index振り直し 
-    #5年目より古いsubmitDateTime削除
+    #5年目より古いsubmitDateTime削除 未実装
     return df
 def main_jsons(h5XBRL,last_day=date.today(),start_day=date.today()-timedelta(days=365*5)):
     if last_day < start_day : start_day=last_day
@@ -98,12 +99,13 @@ def main_jsons(h5XBRL,last_day=date.today(),start_day=date.today()-timedelta(day
     docs_json=list(chain.from_iterable(doc_list))  #flatten      
     #save datelogs & docs_json to HDF
     if len(datelogs)>0 :       
-        h5File=h5py.File(h5XBRL,'a')
-        if 'index' in h5File.keys() :   #上書き処理のため元dataset削除         
-                del h5File['index/datelogs']               
-        h5File.create_dataset('index/datelogs', data=np.array(datelogs, dtype='S'))
-        h5File.flush() 
-        h5File.close()
+        with h5py.File(h5XBRL, 'a') as h5File:
+            #h5File=h5py.File(h5XBRL,'a')
+            if 'index' in h5File.keys() :   #上書き処理のため元dataset削除         
+                    del h5File['index/datelogs']               
+            h5File.create_dataset('index/datelogs', data=np.array(datelogs, dtype='S'))
+            h5File.flush() 
+            #h5File.close()
         #念のためpickle形式でも保存
         p=Path(h5XBRL)
         json_path=p.parent.resolve()           
@@ -117,13 +119,14 @@ def main_jsons(h5XBRL,last_day=date.today(),start_day=date.today()-timedelta(day
         df_doc2=pd.io.json.json_normalize(docs_json) #To Dataframe From Json
         df_doc2=df_doc2.reset_index(drop=True)
         if Path(h5XBRL).exists():
-            h5File=h5py.File(h5XBRL,'a')
-            if 'edinetdocs' in h5File['index'].keys() : 
-                df_doc1=pd.read_hdf(h5XBRL,'index/edinetdocs')
-                df_docs=pd.concat([df_doc1,df_doc2])
-            else :
-                df_docs=df_doc2
-            h5File.close() 
+            with h5py.File(h5XBRL, 'a') as h5File:
+                #h5File=h5py.File(h5XBRL,'a')
+                if 'edinetdocs' in h5File['index'].keys() : 
+                    df_doc1=pd.read_hdf(h5XBRL,'index/edinetdocs')
+                    df_docs=pd.concat([df_doc1,df_doc2])
+                else :
+                    df_docs=df_doc2
+                h5File.flush() 
         else :
             df_docs=df_doc2
         df_docs=json_shaping(df_docs)
@@ -135,7 +138,10 @@ def main_jsons(h5XBRL,last_day=date.today(),start_day=date.today()-timedelta(day
         json_path=p.parent.resolve()           
         json_file=str(json_path)+'\\xbrlDocs.json'
         df_docs.to_json(json_file)
-    return         
+        #新規取得したdf_doc2からdocIDSをもとめダウンロードしHDFかすする
+        #df_doc2=json_shaping(df_doc2)
+        #docIDs=df_doc2['docID'].tolist()
+    return       
 
 
 if __name__=='__main__':
@@ -145,7 +151,4 @@ if __name__=='__main__':
     index/edinetdocs EDINETから取得した書類一覧前日まで
     '''
     h5XBRL='d:\\data\\hdf\\xbrl.h5'
-    main_jsons(h5XBRL) #過去5年分の書類一覧HDF形式で保存
-    
-    
-    
+    main_jsons(h5XBRL) #過去5年分の書類一覧HDF形式で保存    
