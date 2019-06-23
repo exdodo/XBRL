@@ -40,8 +40,8 @@ import pandas as pd
 from lxml import etree as ET
 from tqdm import tqdm
 
-from select_docIDs_freeword import column_shape, download_xbrl
-
+from xbrlUtility import column_shape
+from xbrlUtility import download_xbrl
 
 def get_label_links(xsd_file):
     #xsd_file = xbrlfile.replace('.xbrl','.xsd')
@@ -291,9 +291,9 @@ def xbrl_to_dataframe(xbrlfile_name) :
     taxxomyをその都度読むとネットワークに負荷を掛けるので過去に読んだ事のあるものは'label'
     フォルダーに保存してそこから読み出す
     '''
-    print(xbrlfile_name)
+    #print(xbrlfile_name)
     if Path(xbrlfile_name).suffix=='.xbrl':
-        xbrlfile=file_name
+        xbrlfile=xbrlfile_name
         xsd_file=search_filename(xbrlfile,'.xsd')
         company_file=search_filename(xbrlfile,'_lab.xml')
         type_file=search_filename(xbrlfile,'_pre.xml')
@@ -385,6 +385,7 @@ def add_label_string(df_xbrl,df_label) :
     df_xbrl['from_string']=df_xbrl['from_element_id'].map(dic_label['label_string'])
     df_xbrl['to_string']=df_xbrl['to_element_id'].map(dic_label['label_string'])
     return df_xbrl
+
 def zipParser(xbrlfile,xsd_file,type_file,company_file,company_file_name) :                        
     if not Path('label').exists():
         Path('label').mkdir()  
@@ -419,11 +420,11 @@ def zipParser(xbrlfile,xsd_file,type_file,company_file,company_file_name) :
         add_label_string(df_xbrl,df_all_label)
     #df_all_label.to_excel('all_label.xls',encoding='cp938')
     df_xbrl=df_xbrl.dropna(subset=['amount']) #amount空　削除
-    return df_xbrl    
+    return df_xbrl
 
 if __name__=='__main__':      
     #初期化したいときは'linklog.pkl','labelフォルダー'削除
-    save_path='d:\\data\\xbrl\\download\\edinet' #有報キャッチャー自分用
+    save_path='d:\\data\\xbrl\\download\\edinet' #自分用
     hdf_path='d:\\data\\hdf\\xbrl.h5' #xbrl 書類一覧HDF　保存先
     #test
     #save_path='d:\\data\\xbrl\\temp' #xbrl fileの基幹フォルダー

@@ -28,10 +28,31 @@ import pandas as pd
 from tqdm import tqdm
 
 from EdinetXbrlParser import xbrl_to_dataframe
-from select_docIDs_freeword import (column_shape, docIDs_from_directory,
-                                    docIDs_from_HDF, docIDsToHDF,
-                                    download_xbrl)
-
+from select_docIDs_freeword import (docIDs_from_directory,docIDs_from_HDF)
+from xbrlUtility import column_shape
+from xbrlUtility import download_xbrl
+                                     
+def docIDsToHDF(docIDs,h5xbrl,save_path,df_docs):
+    sr_docs=df_docs.set_index('docID')['edinetCode']
+    for docID in tqdm(docIDs) :
+        edinet_code=sr_docs[docID][0]
+        sDate=df_docs[df_docs['docID']==docID].submitDateTime.to_list()[0]
+        #追番処理 一つのdocIDで複数の財務諸表を提示
+        xbrl_dir=save_path+'\\'+str(int(sDate[0:4]))+'\\'+\
+            str(int(sDate[5:7]))+'\\'+str(int(sDate[8:10]))+'\\'\
+            +docID+'\\'+docID+'\\XBRL\\PublicDoc\\'        
+        p_xbrl=Path(xbrl_dir) #xbrl fileの数を求める
+        p_xbrlfiles=list(p_xbrl.glob('*.xbrl'))
+        xbrl_file_names=[p.name for p in p_xbrlfiles]
+        for xbrl_file_name in xbrl_file_names:
+            oiban=xbrl_file_name[27:30]
+            xbrlfile=xbrl_dir+xbrl_file_name
+            df_xbrl=xbrl_to_dataframe(xbrlfile)
+            df_xbrl['amount']=df_xbrl['amount'].str.replace(' ','') #空白文字削除
+            df_xbrl['amount']=df_xbrl['amount'].str[:220] #pytable制限
+            # saveToHDF
+            df_xbrl.to_hdf(h5xbrl,edinet_code + '/' + docID+'_'+oiban , format='table',
+                          mode='a', data_columns=True, index=True, encoding='utf-8')     
 if __name__=='__main__':
     '''
     ・ダウンロードしたXBRLファイルを一括してHDF化するためのプログラム
@@ -69,7 +90,7 @@ if __name__=='__main__':
     df_json=pd.read_hdf(h5xbrl,key='/index/edinetdocs') #edinetからｄｌした書類一覧のdocIDs
     df_json=column_shape(df_json)
     df_json=df_json[df_json['dtDate']>=start_date]
-    df_json=df_json[df_json['dtDate']<end_date]
+    #df_json=df_json[df_json['dtDate']<end_date]
     json_docIDs=df_json['docID'].to_list()
     print('json docIDs:'+str(len(json_docIDs)))    
     dict_docIDs=docIDs_from_directory(limited_save_path,dir_string) #xbrl file

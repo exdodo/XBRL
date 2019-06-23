@@ -38,8 +38,10 @@ def request_json(sdt,datelogs):
     res = requests.get(url, params=params, verify=False,timeout=3.5, headers=headers)
     sleep(1) #1秒間をあける
     try :
-        rjson=res.json()        
-        datelogs.append(sdt) #エラーなければ日付追加    
+        rjson=res.json()
+        if rjson['metadata']['status']=='200' :
+            #if  rjson['results'] !=[] :        
+            datelogs.append(sdt) #json取得できていれば日付追加        
         return rjson,datelogs
     except json.JSONDecodeError as e:
         print(e)
@@ -142,8 +144,44 @@ def main_jsons(h5XBRL,last_day=date.today(),start_day=date.today()-timedelta(day
         #df_doc2=json_shaping(df_doc2)
         #docIDs=df_doc2['docID'].tolist()
     return       
-
-
+def del_datelogs(h5XBRL) :
+#書類一覧 再読み込みのため過去のHDFのindex データ削除
+    with h5py.File(h5XBRL, 'a') as h5File:
+            #h5File=h5py.File(h5XBRL,'a')
+            if 'index' in h5File.keys() :   #上書き処理のため元dataset削除         
+                    #del h5File['index/datelogs']               
+                    #del h5File['index/edinetdocs']
+                    del h5File['index']
+            h5File.flush()
+def restoreHDFfromDatelog(h5XBRL):    
+    p=Path(h5XBRL)
+    json_path=p.parent.resolve()    
+    datelog_file=str(json_path)+'\\datelog.pkl'
+    print(datelog_file)
+    if Path(datelog_file).exists() :
+        with open(datelog_file,'rb') as log:
+            datelogs=pickle.load(log)            
+            datelogs.sort() 
+            print(datelogs[-5:])        
+        with h5py.File(h5XBRL, 'a') as h5File:            
+            if 'index' in h5File.keys() :   #上書き処理のため元dataset削除
+                if 'datelogs' in h5File['index'].keys() :         
+                    del h5File['index/datelogs']                           
+            print(h5File.keys())
+            print(h5File['index'].keys())
+            h5File.create_dataset('index/datelogs', data=np.array(datelogs, dtype='S10'))
+            print(h5File['index'].keys())
+            h5File.flush() 
+            h5File.close()       
+    return
+def restoreHDFfromJSON(h5XBRL):
+    p=Path(h5XBRL)
+    json_path=p.parent.resolve()           
+    json_file=str(json_path)+'\\xbrlDocs.json'
+    print(h5XBRL)
+    print(json_file)
+    df=pd.read_json(json_file)
+    df.to_hdf(h5XBRL,'index/edinetdocs',mode='w',format='table',data_columns=True)    
 if __name__=='__main__':
     '''
     edinetxbrl.h5 HDF file
@@ -151,4 +189,5 @@ if __name__=='__main__':
     index/edinetdocs EDINETから取得した書類一覧前日まで
     '''
     h5XBRL='d:\\data\\hdf\\xbrl.h5'
-    main_jsons(h5XBRL) #過去5年分の書類一覧HDF形式で保存    
+    main_jsons(h5XBRL) #過去5年分の書類一覧HDF形式で保存
+    #print(load_datelog(h5XBRL))

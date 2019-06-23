@@ -19,9 +19,10 @@ import urllib3
 from tqdm import tqdm
 from urllib3.exceptions import InsecureRequestWarning
 
-from EDINET_API import main_jsons
-from EdinetXbrlParser import xbrl_to_dataframe, zipParser
-
+#from EDINET_API import main_jsons
+from EdinetXbrlParser import zipParser
+from xbrlUtility import column_shape
+from xbrlUtility import download_xbrl
 urllib3.disable_warnings(InsecureRequestWarning) #verify=False対策
 def select_dict_docIDs(df,seek_word):
     #辞書にして抽出
@@ -56,30 +57,7 @@ def select_docIDs_freeword(df,seek_words=['トヨタ自動車'],seek_columns=[])
     flat_docs = [item for sublist in docIDs for item in sublist]#flatten
     unique_docs=list(set(flat_docs))    
     return unique_docs
-def column_shape(df,nYears=[]) :
-    if nYears==[] :
-        nYears=[2014,int(datetime.now().year)]
-    
-    #submitDateTime 日付型へ
-    df['dtDateTime']=pd.to_datetime(df['submitDateTime']) #obj to datetime
-    df['dtDate']=df['dtDateTime'].dt.date #時刻を丸める　normalize round resample date_range
-    df['secCode'] = df['secCode'].fillna(0)
-    df['secCode'] = df['secCode'].astype(int)
-    df['secCode'] = df['secCode']/10
-    df['secCode'] = df['secCode'].map('{:.0f}'.format)
-    cols=['docTypeCode','ordinanceCode','xbrlFlag']
-    for col_name in cols :
-        df[col_name]=df[col_name].fillna(0)
-        df[col_name]=df[col_name].astype(int)
-        df[col_name]=df[col_name].astype(str)   
-    #期間指定
-    df=df[(df['dtDateTime'].dt.year >= min(nYears)) 
-            & (df['dtDateTime'].dt.year <= max(nYears))]
-    #docIDだけあり他がｎｕｌｌ（諸般の事情で削除された）が2000近くあるから削除
-    df=df.dropna(subset=['submitDateTime'])
-    df=df.sort_values('submitDateTime')
-    df=df[df['xbrlFlag']=='1'] #xbrl fileだけ扱う         
-    return df   
+  
 
 def display_From_docIDS(df,docIDs) :
     #edinetコード　提出者名辞書作成
@@ -98,38 +76,7 @@ def display_From_docIDS(df,docIDs) :
     df['filerName']=df['filerName'].str[:10]
     print(df[['dtDate','secCode','filerName','docDescription']])
 
-def download_xbrl(df_json,save_path,docIDs):
-    print('xbrl downloading...')
-    #error_docID={}
-    error_docIDs=[]
-    #docIDから既にdowloadしたもんか判断
-    for docID in tqdm(docIDs) :                 
-        #docIDsからdataframe 抽出
-        if docID in df_json['docID'].to_list()  : #削除ドキュメント対策
-            sDate=df_json[df_json['docID']==docID].submitDateTime.to_list()[0]
-            flag=df_json[df_json['docID']==docID].xbrlFlag.to_list()[0]
-            file_dir=save_path+'\\'+str(int(sDate[0:4]))+'\\'+\
-                str(int(sDate[5:7]))+'\\'+str(int(sDate[8:10]))+'\\'\
-                +docID+'\\'+docID
-            if not Path(file_dir).exists() and flag=='1':  #xdrl fileなければ取得            
-                #書類取得
-                url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents/'+docID
-                params = { 'type': 1} #1:zip 2 pdf
-                headers = {'User-Agent': 'add mail address'}            
-                res = requests.get(url, params=params,verify=False,timeout=3.5, headers=headers)            
-                sleep(1)
-                if 'stream' in res.headers['Content-Type'] :
-                    with zipfile.ZipFile(BytesIO(res.content)) as existing_zip:        
-                        existing_zip.extractall(file_dir)                    
-                else :
-                    error_docIDs.append(docID)
-                    #error_docID[docID]=res.headers
-    
-    if len(error_docIDs)>0 :
-        print(str(len(error_docIDs))+'件xbrl保存せず。　log.txt')
-        with open('log.txt', mode='w') as f:
-            f.writelines(error_docIDs)
-            #print(error_docID)
+
 def directHdfFromZIP(df_json,docIDs,h5xbrl):
     print('zip to HDF...')
     hdf_docIDs=docIDs_from_HDF(h5xbrl)
@@ -179,28 +126,6 @@ def directHdfFromZIP(df_json,docIDs,h5xbrl):
                         df.to_hdf(h5xbrl,edinet_code + '/' + docID+'_'+oiban , format='table',
                           mode='a', data_columns=True, index=True, encoding='utf-8')                         
     return
-def docIDsToHDF(docIDs,h5xbrl,save_path,df_docs):
-    sr_docs=df_docs.set_index('docID')['edinetCode']
-    for docID in tqdm(docIDs) :
-        edinet_code=sr_docs[docID][0]
-        sDate=df_docs[df_docs['docID']==docID].submitDateTime.to_list()[0]
-        #追番処理 一つのdocIDで複数の財務諸表を提示
-        xbrl_dir=save_path+'\\'+str(int(sDate[0:4]))+'\\'+\
-            str(int(sDate[5:7]))+'\\'+str(int(sDate[8:10]))+'\\'\
-            +docID+'\\'+docID+'\\XBRL\\PublicDoc\\'        
-        p_xbrl=Path(xbrl_dir) #xbrl fileの数を求める
-        p_xbrlfiles=list(p_xbrl.glob('*.xbrl'))
-        xbrl_file_names=[p.name for p in p_xbrlfiles]
-        for xbrl_file_name in xbrl_file_names:
-            oiban=xbrl_file_name[27:30]
-            xbrlfile=xbrl_dir+xbrl_file_name
-            df_xbrl=xbrl_to_dataframe(xbrlfile)
-            df_xbrl['amount']=df_xbrl['amount'].str.replace(' ','') #空白文字削除
-            df_xbrl['amount']=df_xbrl['amount'].str[:220] #pytable制限
-            # saveToHDF
-            df_xbrl.to_hdf(h5xbrl,edinet_code + '/' + docID+'_'+oiban , format='table',
-                          mode='a', data_columns=True, index=True, encoding='utf-8')       
-    return
 def docIDs_from_directory(save_path,dir_string):
     p_dir = Path(save_path)
     #xbrlファイルのあるディレクトリーのみを抽出 年次有価証券報告書('asr')
@@ -223,7 +148,7 @@ def docIDs_from_HDF(h5xbrl):
 if __name__=='__main__':
     #-------------------------------------------------------------------------
       
-    save_path='d:\\data\\xbrl\\download\\edinet' #有報キャッチャー自分用
+    save_path='d:\\data\\xbrl\\download\\edinet' #自分用
     hdf_path='d:\\data\\hdf\\xbrl.h5' #xbrl 書類一覧HDF　保存先
     #test用
     #save_path='d:\\data\\xbrl\\temp' #xbrl file保存先の基幹フォルダー 
@@ -236,9 +161,9 @@ if __name__=='__main__':
      '株式会社フォルティス', '三浦恵美', '村上世彰', '株式会社C&IHoldings', 
      '株式会社シティインデックスホールディングス'] #旧村上
     hitachi=['6501',6501,'６５０１','日立製作所'] #日立製作所       
-    seek_words=mkgp #['S100FWSV']#['Ｅｖｏ　Ｆｕｎｄ']
+    seek_words=['E32831'] #['S100FWSV']#['Ｅｖｏ　Ｆｕｎｄ']
     #列指定したいならば書類一覧項目を下記にしるす　なければ[]
-    seek_columns=['filerName','secCode','docDescription','subjectEdinetCode','docID']
+    seek_columns=['edinetCode','filerName','secCode','docDescription','subjectEdinetCode','docID']
     nYears=[2019,2019] #期間指定　年　以上以内      
     #-----------------------------------------------------------------------
     #main_jsons(hdf_path) #前日まで提出書類一覧を取得  
