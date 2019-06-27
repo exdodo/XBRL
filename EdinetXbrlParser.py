@@ -267,19 +267,19 @@ def get_xml_attrib_value( node, attrib):
     else:
         return None
 
-def seek_from_docIDs(save_path,docIDs,h5xbrl):
+def seek_from_docIDs(save_path,docIDs,h5xbrl,df_docs):
     '''
     docIDからXBRLファイルのディレクトリーリストを取得
     
     '''    
-    df_json=pd.read_hdf(h5xbrl,key='/index/edinetdocs') #edinetからｄｌした書類一覧のdocIDs
-    df_json = column_shape(df_json) #dataframeを推敲    
-    download_xbrl(df_json,save_path,docIDs) #XBRLファイルをなければ取得
+    #df_json=pd.read_hdf(h5xbrl,key='/index/edinetdocs') #edinetからｄｌした書類一覧のdocIDs
+    #df_docs = column_shape(df_json) #dataframeを推敲    
+    download_xbrl(df_docs,save_path,docIDs) #XBRLファイルをなければ取得
     dirls=[]
     for docID in tqdm(docIDs):                 
         #docIDsからdataframe 抽出
-        if docID in df_json['docID'].to_list()  : #削除ドキュメント対策
-            sDate=df_json[df_json['docID']==docID].submitDateTime.to_list()[0]
+        if docID in df_docs['docID'].to_list()  : #削除ドキュメント対策
+            sDate=df_docs[df_docs['docID']==docID].submitDateTime.to_list()[0]
             file_dir=save_path+'\\'+str(int(sDate[0:4]))+'\\'+\
                 str(int(sDate[5:7]))+'\\'+str(int(sDate[8:10]))+'\\'\
                 +docID+'\\'+docID+'\\XBRL\\PublicDoc'
@@ -425,15 +425,16 @@ def zipParser(xbrlfile,xsd_file,type_file,company_file,company_file_name) :
 if __name__=='__main__':      
     #初期化したいときは'linklog.pkl','labelフォルダー'削除
     save_path='d:\\data\\xbrl\\download\\edinet' #自分用
-    hdf_path='d:\\data\\hdf\\xbrl.h5' #xbrl 書類一覧HDF　保存先
-    #test
-    #save_path='d:\\data\\xbrl\\temp' #xbrl fileの基幹フォルダー
-    #hdf_path='d:\\data\\xbrl\\edinetxbrl.h5' #xbrl 書類一覧HDF　保存先
-    docIDs=['S100G21U',]
+    h5xbrl='d:\\data\\hdf\\xbrl.h5' #xbrl 書類一覧HDF　保存先
+    
+    #docIDs=['S100G21U',]　#ソニー
+    docIDs=['S100G5ZP']
     #docIDs=['S100DAZ4']#['S100DJ2G',]#['S100DAZ4']
     #確認書以外はOK 確認書はxbrlがない
     filenames=[]
-    dirls=seek_from_docIDs(save_path,docIDs,hdf_path)
+    df_json=pd.read_hdf(h5xbrl,key='/index/edinetdocs') #edinetからｄｌした書類一覧のdocIDs
+    df_docs = column_shape(df_json) #dataframeを推敲   
+    dirls=seek_from_docIDs(save_path,docIDs,h5xbrl,df_docs)
     for dir_text in dirls: 
         for file_name in glob.glob(dir_text+'\\*.xbrl') :
             filenames.append(file_name)#ここにXBRL File 指定

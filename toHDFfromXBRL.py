@@ -28,9 +28,11 @@ import pandas as pd
 from tqdm import tqdm
 
 from EdinetXbrlParser import xbrl_to_dataframe
-from select_docIDs_freeword import (docIDs_from_directory,docIDs_from_HDF)
+#from select_docIDs_freeword import docIDs_from_directory
+from EDINET_HDF import docIDsFromHDF
 from xbrlUtility import column_shape
 from xbrlUtility import download_xbrl
+from xbrlUtility import docIDsFromDirectory
                                      
 def docIDsToHDF(docIDs,h5xbrl,save_path,df_docs):
     sr_docs=df_docs.set_index('docID')['edinetCode']
@@ -68,11 +70,7 @@ if __name__=='__main__':
     
     '''
     save_path='d:\\data\\xbrl\\download\\edinet' #ダウンロードし解凍したxbrl file保存先基幹ファイル
-    h5xbrl='d:\\data\\hdf\\xbrl.h5'  #HDF file保存先
-    #test
-    #h5xbrl='d:\\data\\test\\testxbrl.h5'
-    #save_path='d:\\data\\xbrl\\temp' #xbrl file保存先の基幹フォルダー 
-    
+    h5xbrl='d:\\data\\hdf\\xbrl.h5'  #HDF file保存先    
     start_date=datetime.date(2019, 6, 1)
     end_date=datetime.date.today()
     #フォルダー指定のアルゴリズ考えるのめんどいので簡易版
@@ -82,10 +80,10 @@ if __name__=='__main__':
         limited_save_path=save_path+'\\'+str(start_date.year)\
             +'\\'+str(start_date.month) 
     
-    dir_string='**/PublicDoc/*.xbrl' #'**/PublicDoc/*asr*E*.xbrl'
+    #dir_string='**/PublicDoc/*.xbrl' #'**/PublicDoc/*asr*E*.xbrl'
     print('calucalateing docID...')
     #docIDの整合性を整える 過去にHDF保存したものや書類一覧に記載のないものはHDF化しない
-    hdf_docIDs=docIDs_from_HDF(h5xbrl) #HDF group名から求める　docIDs        
+    hdf_docIDs=docIDsFromHDF(h5xbrl) #HDF group名から求める　docIDs        
     print('HDF docIDS:'+str(len(hdf_docIDs)))
     df_json=pd.read_hdf(h5xbrl,key='/index/edinetdocs') #edinetからｄｌした書類一覧のdocIDs
     df_json=column_shape(df_json)
@@ -93,8 +91,9 @@ if __name__=='__main__':
     #df_json=df_json[df_json['dtDate']<end_date]
     json_docIDs=df_json['docID'].to_list()
     print('json docIDs:'+str(len(json_docIDs)))    
-    dict_docIDs=docIDs_from_directory(limited_save_path,dir_string) #xbrl file
-    dir_docIDs=list(dict_docIDs.keys())
+    #dict_docIDs=docIDs_from_directory(limited_save_path,dir_string) #xbrl file
+    #dir_docIDs=list(dict_docIDs.keys())
+    dir_docIDs=docIDsFromDirectory(limited_save_path)
     print('directory docIDs:'+str(len(dir_docIDs)))
     #json_docIDsのうちdir_docIDsに含まれていないものを抽出
     dl_docIDs=list(set(json_docIDs) - set(dir_docIDs))

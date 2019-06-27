@@ -3,6 +3,7 @@
 Created on Thu May 16 10:23:34 2019
 注意：過去５年分のEDINETファイル情報は３０万以上あり有価証券報告書だけで1TBに迫ります
 書類一覧項目から大量にXBRLファイルをダウンロードするために作成
+githubからは削除
 @author: Yusuke
 """
 import pandas as pd
