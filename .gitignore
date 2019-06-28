@@ -129,3 +129,7 @@ testAnalyze.py
 user1.code-workspace
 makeTestXBRL.py
 directHDFfromZIP.py
+select_docIDs_freeword.py
+select_docIDs_freeword.py
+select_docIDs_freeword.py
+toHDFfromXBRL.py

@@ -28,17 +28,21 @@ EDINETタクソノミは© Copyright 2014 Financial Services Agency, The Japanes
 #20180331以降 2018
 @author: Yusuke
 """
-#from lxml import objectify as ET
-from lxml import etree as ET
-#import os 
-import pandas as pd
-from collections import defaultdict
-import re
 import glob
 import pickle
-from tqdm import tqdm
-from select_docIDs_freeword import download_xbrl,column_shape
+import re
+import zipfile
+from collections import defaultdict
+from io import BytesIO
 from pathlib import Path
+
+import pandas as pd
+from lxml import etree as ET
+from tqdm import tqdm
+
+from xbrlUtility import column_shape
+from xbrlUtility import download_xbrl
+
 def get_label_links(xsd_file):
     #xsd_file = xbrlfile.replace('.xbrl','.xsd')
     labels=ET.parse(xsd_file)
@@ -83,9 +87,9 @@ def parse_companyxml(company_file) :
     company_label = defaultdict(list)
     company_loc=defaultdict(list)
     company_arc=defaultdict(list)
-    #loc->label->labelArc
+    #loc->label->labelArc    
     with open(company_file,'rt', encoding='utf-8') as comp_file :
-        labels = ET.parse(comp_file)    
+        labels = ET.parse(comp_file)       
         root=labels.getroot()
         ns=root.nsmap
         ns['xml']='http://www.w3.org/XML/1998/namespace'
@@ -121,7 +125,47 @@ def parse_companyxml(company_file) :
                     company_arc['to_element_id'].append(grand_child.attrib['{'+ns['xlink']+'}to'])
                     company_arc['elemnt_id'].append( element_id ) #label から流用            
         return pd.DataFrame(company_label),pd.DataFrame(company_arc) 
-
+def parse_companyxml_zip(company_file,company_file_name) :   
+    company_label = defaultdict(list)
+    company_loc=defaultdict(list)
+    company_arc=defaultdict(list)
+    #loc->label->labelArc   
+    labels = ET.parse(company_file)       
+    root=labels.getroot()
+    ns=root.nsmap
+    ns['xml']='http://www.w3.org/XML/1998/namespace'
+    #jpcrp030000-asr-001_E01737-000_2018-03-31_01_2018-06-29_lab.xml
+    #prefix=os.path.basename(company_file)[0:15]+'_'+\
+    #        os.path.basename(company_file)[20:30]+'_'
+    prefix=company_file_name[0:15]+'_'+company_file_name[20:30]+'_'
+    for child in labels.findall('.//link:labelLink',ns) :
+        for grand_child in child.iter():                
+            if grand_child.tag=='{http://www.xbrl.org/2003/linkbase}loc':
+                #company_loc['type'].append(grand_child.attrib['{'+ns['xlink']+'}type'])
+                company_loc['href'].append(grand_child.attrib['{'+ns['xlink']+'}href'])
+                href=grand_child.attrib['{'+ns['xlink']+'}href']
+                element_id=href.split('#')[1]
+                #company_loc['element_id'].append(element_id)
+                #company_loc['label'].append(grand_child.attrib['{'+ns['xlink']+'}label'])
+                #company_loc['title'].append(grand_child.attrib['{'+ns['xlink']+'}title'])
+                #company_loc['serial_num'].append(serial_num)                
+            if grand_child.tag=='{http://www.xbrl.org/2003/linkbase}label':
+                element_id=grand_child.attrib['{'+ns['xlink']+'}label']
+                element_id=element_id.replace('label_',prefix)
+                company_label['lab_type'].append(grand_child.attrib['{'+ns['xlink']+'}type'])
+                company_label['label'].append(grand_child.attrib['{'+ns['xlink']+'}label'])
+                #company_label['role'].append(grand_child.attrib['{'+ns['xlink']+'}role'])
+                company_label['lang'].append(grand_child.attrib['{'+ns['xml']+'}lang'])
+                company_label['element_id'].append( element_id )
+                #company_label['lab_name']=grand_child.attrib['{'+ns['xlink']+'}label']
+                #label_dict['lab_name']=label_node.attrib['id']
+                company_label['label_string'].append( grand_child.text)                    
+                #company_label['serial_num'].append(serial_num)
+            if grand_child.tag=='{http://www.xbrl.org/2003/linkbase}labelArc':
+                company_arc['from_element_id'].append(grand_child.attrib['{'+ns['xlink']+'}from'])
+                company_arc['to_element_id'].append(grand_child.attrib['{'+ns['xlink']+'}to'])
+                company_arc['elemnt_id'].append( element_id ) #label から流用            
+    return pd.DataFrame(company_label),pd.DataFrame(company_arc) 
 def parse_facts(fxbrl):   
     """
     return(element_id, amount, context_ref, unit_ref, decimals)
@@ -223,39 +267,56 @@ def get_xml_attrib_value( node, attrib):
     else:
         return None
 
-def seek_from_docIDs(save_path,docIDs,h5xbrl):
+def seek_from_docIDs(save_path,docIDs,h5xbrl,df_docs):
     '''
     docIDからXBRLファイルのディレクトリーリストを取得
     
     '''    
-    df_json=pd.read_hdf(h5xbrl,key='/index/edinetdocs') #edinetからｄｌした書類一覧のdocIDs
-    df_json = column_shape(df_json) #dataframeを推敲    
-    download_xbrl(df_json,save_path,docIDs) #XBRLファイルをなければ取得
+    #df_json=pd.read_hdf(h5xbrl,key='/index/edinetdocs') #edinetからｄｌした書類一覧のdocIDs
+    #df_docs = column_shape(df_json) #dataframeを推敲    
+    download_xbrl(df_docs,save_path,docIDs) #XBRLファイルをなければ取得
     dirls=[]
     for docID in tqdm(docIDs):                 
         #docIDsからdataframe 抽出
-        if docID in df_json['docID'].to_list()  : #削除ドキュメント対策
-            sDate=df_json[df_json['docID']==docID].submitDateTime.to_list()[0]
+        if docID in df_docs['docID'].to_list()  : #削除ドキュメント対策
+            sDate=df_docs[df_docs['docID']==docID].submitDateTime.to_list()[0]
             file_dir=save_path+'\\'+str(int(sDate[0:4]))+'\\'+\
                 str(int(sDate[5:7]))+'\\'+str(int(sDate[8:10]))+'\\'\
                 +docID+'\\'+docID+'\\XBRL\\PublicDoc'
             dirls.append(file_dir)
     return dirls
 
-def xbrl_to_dataframe(xbrlfile) :
+def xbrl_to_dataframe(xbrlfile_name) :
     '''
     taxxomyをその都度読むとネットワークに負荷を掛けるので過去に読んだ事のあるものは'label'
     フォルダーに保存してそこから読み出す
     '''
-    #.xsd,_lab.xml,_pre.xml,_cal.xmlを探す
-    
-    #if not os.path.isdir('label') :
-    #    os.mkdir('label')
+    #print(xbrlfile_name)
+    if Path(xbrlfile_name).suffix=='.xbrl':
+        xbrlfile=xbrlfile_name
+        xsd_file=search_filename(xbrlfile,'.xsd')
+        company_file=search_filename(xbrlfile,'_lab.xml')
+        type_file=search_filename(xbrlfile,'_pre.xml')
+    elif Path(xbrlfile_name).suffix=='.zip':
+        with zipfile.ZipFile(xbrlfile_name) as existing_zip:
+            #files=existing_zip.infolist()
+            files=existing_zip.namelist()        
+            xbrlfiles=[ i for i in files if '.xbrl' in i and 'XBRL/PublicDoc/' in i]
+            xsdfiles=[ i for i in files if '.xsd' in i and 'XBRL/PublicDoc/' in i]
+            #calfiles=[ i for i in files if '_cal.xml' in i and 'XBRL/PublicDoc/' in i]
+            prefiles=[ i for i in files if '_pre.xml' in i and 'XBRL/PublicDoc/' in i]
+            labfiles=[ i for i in files if '_lab.xml' in i and 'XBRL/PublicDoc/' in i]
+            if len(xbrlfiles)==1 :                
+                xbrlfile=BytesIO(existing_zip.read(xbrlfiles[0]))
+                xsd_file=BytesIO(existing_zip.read(xsdfiles[0]))
+                #cal_file=BytesIO(existing_zip.read(calfiles[0]))
+                type_file=BytesIO(existing_zip.read(prefiles[0]))
+                company_file_name=prefiles[0]
+                company_file=BytesIO(existing_zip.read(labfiles[0]))                
     if not Path('label').exists():
         Path('label').mkdir()  
     df_label = pd.DataFrame(index=[], columns=[])
-    linklogs=linklog()  #過去の読込日を呼び出す     
-    xsd_file=search_filename(xbrlfile,'.xsd')
+    linklogs=linklog()  #過去のlabelを呼び出す        
     for link_item in get_label_links(xsd_file) :
         #label_name, xml = os.path.splitext(os.path.basename(link_item))
         label_name=Path(link_item).stem
@@ -272,14 +333,16 @@ def xbrl_to_dataframe(xbrlfile) :
             #df_label=df_label.drop_duplicates(subset=['element_id', 'label_string']) #重複削除
     with open('linklog.pkl','wb') as log_file:
         pickle.dump(linklogs, log_file)
-    company_file=search_filename(xbrlfile,'_lab.xml')
-    if company_file!=None :        
-        df_comp_label,df_comp_type=parse_companyxml(company_file)        
+    if company_file!=None :
+        if type(company_file) is str:        
+            df_comp_label,df_comp_type=parse_companyxml(company_file)
+        else :
+            df_comp_label,df_comp_type=parse_companyxml_zip(company_file,company_file_name)        
         df_all_label=pd.concat([df_comp_label,df_label],sort=False)        
     else :
         df_all_label=df_label
     df_facts=parse_facts(xbrlfile)
-    df_type=parse_type(search_filename(xbrlfile,'_pre.xml'))
+    df_type=parse_type(type_file)
     df_xbrl=merge_df(df_all_label,df_facts,df_type)
     if 'from_element_id' in df_xbrl.columns : #日本語ラベル追加
         df_all_label.reset_index(drop=True, inplace=True)
@@ -323,25 +386,61 @@ def add_label_string(df_xbrl,df_label) :
     df_xbrl['to_string']=df_xbrl['to_element_id'].map(dic_label['label_string'])
     return df_xbrl
 
+def zipParser(xbrlfile,xsd_file,type_file,company_file,company_file_name) :                        
+    if not Path('label').exists():
+        Path('label').mkdir()  
+    df_label = pd.DataFrame(index=[], columns=[])
+    linklogs=linklog()  #過去のlabelを呼び出す        
+    for link_item in get_label_links(xsd_file) :
+        #label_name, xml = os.path.splitext(os.path.basename(link_item))
+        label_name=Path(link_item).stem
+        label_name='./label/'+label_name+'.json'
+        #if os.path.exists(label_name) :
+        if Path(label_name).exists():
+            df_label=df_label.append(pd.read_json(label_name))       
+        elif link_item not in linklogs :
+            temp_df=get_label1(link_item)            
+            df_label=df_label.append(temp_df)            
+            linklogs.append(link_item)
+            temp_df.reset_index(drop=True, inplace=True) #index振り直し 
+            temp_df.to_json(label_name)
+            #df_label=df_label.drop_duplicates(subset=['element_id', 'label_string']) #重複削除
+    with open('linklog.pkl','wb') as log_file:
+        pickle.dump(linklogs, log_file)
+    if company_file!=None :        
+        df_comp_label,df_comp_type=parse_companyxml_zip(company_file,company_file_name)        
+        df_all_label=pd.concat([df_comp_label,df_label],sort=False)        
+    else :
+        df_all_label=df_label
+    df_facts=parse_facts(xbrlfile)
+    df_type=parse_type(type_file)
+    df_xbrl=merge_df(df_all_label,df_facts,df_type)
+    if 'from_element_id' in df_xbrl.columns : #日本語ラベル追加
+        df_all_label.reset_index(drop=True, inplace=True)
+        add_label_string(df_xbrl,df_all_label)
+    #df_all_label.to_excel('all_label.xls',encoding='cp938')
+    df_xbrl=df_xbrl.dropna(subset=['amount']) #amount空　削除
+    return df_xbrl
+
 if __name__=='__main__':      
     #初期化したいときは'linklog.pkl','labelフォルダー'削除
-    save_path='d:\\data\\xbrl\\download\\edinet' #有報キャッチャー自分用
-    hdf_path='d:\\data\\hdf\\xbrl.h5' #xbrl 書類一覧HDF　保存先
-    #test
-    #save_path='d:\\data\\xbrl\\temp' #xbrl fileの基幹フォルダー
-    #hdf_path='d:\\data\\xbrl\\edinetxbrl.h5' #xbrl 書類一覧HDF　保存先
+    save_path='d:\\data\\xbrl\\download\\edinet' #自分用
+    h5xbrl='d:\\data\\hdf\\xbrl.h5' #xbrl 書類一覧HDF　保存先
     
-    
-    docIDs=['S100FYT6',]
+    #docIDs=['S100G21U',]　#ソニー
+    docIDs=['S100G5ZP']
     #docIDs=['S100DAZ4']#['S100DJ2G',]#['S100DAZ4']
     #確認書以外はOK 確認書はxbrlがない
     filenames=[]
-    dirls=seek_from_docIDs(save_path,docIDs,hdf_path)
+    df_json=pd.read_hdf(h5xbrl,key='/index/edinetdocs') #edinetからｄｌした書類一覧のdocIDs
+    df_docs = column_shape(df_json) #dataframeを推敲   
+    dirls=seek_from_docIDs(save_path,docIDs,h5xbrl,df_docs)
     for dir_text in dirls: 
         for file_name in glob.glob(dir_text+'\\*.xbrl') :
             filenames.append(file_name)#ここにXBRL File 指定
     if filenames :
         for xbrlfile in filenames :
+            
             df_xbrl=xbrl_to_dataframe(xbrlfile)
             #print(df_xbrl)        
             df_xbrl['amount']=df_xbrl['amount'].str[:3000] #excel cell 文字数制限   
@@ -350,4 +449,3 @@ if __name__=='__main__':
             print(xlsname)
             df_xbrl.to_excel(xlsname+'.xls',encoding='cp938')            
     else : print('xbrl file 見つかりません')
-    

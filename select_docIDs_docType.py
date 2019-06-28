@@ -3,6 +3,7 @@
 Created on Thu May 16 10:23:34 2019
 注意：過去５年分のEDINETファイル情報は３０万以上あり有価証券報告書だけで1TBに迫ります
 書類一覧項目から大量にXBRLファイルをダウンロードするために作成
+githubからは削除
 @author: Yusuke
 """
 import pandas as pd
@@ -11,7 +12,8 @@ from urllib3.exceptions import InsecureRequestWarning
 urllib3.disable_warnings(InsecureRequestWarning) #verify=False対策
 import unicodedata
 from EDINET_API import main_jsons
-from select_docIDs_freeword import column_shape,display_From_docIDS,download_xbrl
+from select_docIDs_freeword import display_From_docIDS
+from xbrlUtility import column_shape,download_xbrl
 def select_docIDs_docType(df,dict_cond) :
     docIDs=[]
     df_focus=df              
@@ -24,10 +26,9 @@ def select_docIDs_docType(df,dict_cond) :
     flat_docs = [item for sublist in docIDs for item in sublist]#flatten
     unique_docs=list(set(flat_docs))
     return unique_docs
-def settei(dict_cond,nYears) :
-    save_path='d:\\data\\xbrl\\temp' #xbrl file保存先の基幹フォルダー
-    hdf_path='d:\\data\\xbrl\\edinetxbrl.h5' #xbrl 書類一覧HDF　保存先       
-    main_jsons(hdf_path) #前日まで提出書類一覧を取得  
+def settei(dict_cond,nYears,save_path,hdf_path) :
+    
+    #main_jsons(hdf_path) #前日まで提出書類一覧を取得  
     df=pd.read_hdf(hdf_path,key='/index/edinetdocs')
     df = column_shape(df) #dataframeを推敲
     df=df[(df['dtDateTime'].dt.year >= min(nYears)) 
@@ -42,8 +43,10 @@ if __name__=='__main__':
     #--DISK容量が十分にあるかダウンロード対象のdocIDsを絞らないとシステムに深刻な影響を与えます--
     #dict_cond={'formCode':'030000', 'ordinanceCode':'10'}　#年次有価証券報告書 取得用
     dict_cond={'secCode':'6758'}       
-    nYears=[2019,2019] #期間指定　年　以上以内  
-    settei(dict_cond,nYears)
+    nYears=[2019,2019] #期間指定　年　以上以内
+    save_path='d:\\data\\xbrl\\download\\edinet' #自分用
+    hdf_path='d:\\data\\hdf\\xbrl.h5' #xbrl 書類一覧HDF　保存先         
+    settei(dict_cond,nYears,save_path,hdf_path)
     '''
     書類一覧項目{'JCN':'提出者法人番号', 'attachDocFlag':'代替書面・添付文書有無フラグ', 
      'currentReportReason':'臨報提出事由', 'disclosureStatus':'開示不開示区分',

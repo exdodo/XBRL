@@ -31,7 +31,7 @@ import pandas as pd
 import glob
 from pathlib import Path
 import h5py
-from select_docIDs_freeword import column_shape
+from xbrlUtility import column_shape
 def ToExcel_finace_sheets(df_docs,docIDs,h5xbrl) :
     for docID in docIDs :
         edinet_codes=df_docs[df_docs['docID']==docID]['edinetCode'].tolist()

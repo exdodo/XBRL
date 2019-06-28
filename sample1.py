@@ -1,17 +1,19 @@
 #旧村上ファンドグループをリスト化する
 #'株式会社レノ'をキーワードとして書類一覧をもとめ、書類一覧から各書類を調べ、共同保有者を抜き出す。
 #次に共同保有者から書類一覧をもとめ共同保有者のリストを充実させていく
-import pandas as pd
-from itertools import chain
-from select_docIDs_freeword import select_docIDs_freeword
-from select_docIDs_freeword import column_shape
-from select_docIDs_freeword import download_xbrl
-from toHDFfromXBRL import docIDs_from_HDF
-from toHDFfromXBRL import docIDsToHDF 
-from  EdinetXbrlParser import xbrl_to_dataframe
-import h5py
-from pathlib import Path
 import collections
+from itertools import chain
+from pathlib import Path
+
+import h5py
+import pandas as pd
+
+from EdinetXbrlParser import xbrl_to_dataframe
+from select_docIDs_freeword import (column_shape, download_xbrl,
+                                    select_docIDs_freeword)
+from toHDFfromXBRL import docIDs_from_HDF, docIDsToHDF
+
+
 def collect_holders(docIDs,df_docs,xbrl_path) :
     sr_docs=df_docs.set_index('docID')['edinetCode'] #dataframe to Series print(sr_docs['S100FSTI'])
     holders=[]

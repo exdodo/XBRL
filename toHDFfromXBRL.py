@@ -21,34 +21,19 @@ o'reilly『Python and HDF5』
     # 0123456789012345678901234567890123456789012345678901234567890
     # jpcrp030000-asr-001_E00000-000_2017-03-31_01_2017-06-29.xbrl
 
-from  EdinetXbrlParser import xbrl_to_dataframe
-from select_docIDs_freeword import column_shape
-from select_docIDs_freeword import download_xbrl
-from pathlib import Path
-import pandas as pd
-import h5py
-from itertools import chain
-from tqdm import tqdm
 import datetime
-def docIDs_from_directory(save_path,dir_string):
-    p_dir = Path(save_path)
-    #xbrlファイルのあるディレクトリーのみを抽出 年次有価証券報告書('asr')
-    p_winpath=list(p_dir.glob(dir_string)) 
-    dl_docIDs=[docID.parents[2].name for docID in p_winpath] #一個上parents[0]
-    xbrl_file_names=[p.name for p in p_winpath if p.is_file()] #ファイル名（basename）のみを抽出    
-    dic_docIDs = dict(zip( dl_docIDs,xbrl_file_names))
-    return dic_docIDs
+from pathlib import Path
 
-def docIDs_from_HDF(h5xbrl):
-    hdf_docIDs=[]
-    if Path(h5xbrl).exists() :
-        with h5py.File(h5xbrl, 'r') as h5File:
-            key_list1=h5File.keys()
-            key_list2=[ list(h5File[key].keys()) for key in key_list1 if key!='index']
-            key_list2=list(chain.from_iterable(key_list2)) #flatten
-            hdf_docIDs=[ key[0:8] for key in key_list2] #追番削除
-            hdf_docIDs=list(set(hdf_docIDs)) #unique
-    return hdf_docIDs
+import pandas as pd
+from tqdm import tqdm
+
+from EdinetXbrlParser import xbrl_to_dataframe
+#from select_docIDs_freeword import docIDs_from_directory
+from EDINET_HDF import docIDsFromHDF
+from xbrlUtility import column_shape
+from xbrlUtility import download_xbrl
+from xbrlUtility import docIDsFromDirectory
+                                     
 def docIDsToHDF(docIDs,h5xbrl,save_path,df_docs):
     sr_docs=df_docs.set_index('docID')['edinetCode']
     for docID in tqdm(docIDs) :
@@ -69,8 +54,7 @@ def docIDsToHDF(docIDs,h5xbrl,save_path,df_docs):
             df_xbrl['amount']=df_xbrl['amount'].str[:220] #pytable制限
             # saveToHDF
             df_xbrl.to_hdf(h5xbrl,edinet_code + '/' + docID+'_'+oiban , format='table',
-                          mode='a', data_columns=True, index=True, encoding='utf-8')       
-    return
+                          mode='a', data_columns=True, index=True, encoding='utf-8')     
 if __name__=='__main__':
     '''
     ・ダウンロードしたXBRLファイルを一括してHDF化するためのプログラム
@@ -86,11 +70,7 @@ if __name__=='__main__':
     
     '''
     save_path='d:\\data\\xbrl\\download\\edinet' #ダウンロードし解凍したxbrl file保存先基幹ファイル
-    h5xbrl='d:\\data\\hdf\\xbrl.h5'  #HDF file保存先
-    #test
-    #h5xbrl='d:\\data\\test\\testxbrl.h5'
-    #save_path='d:\\data\\xbrl\\temp' #xbrl file保存先の基幹フォルダー 
-    
+    h5xbrl='d:\\data\\hdf\\xbrl.h5'  #HDF file保存先    
     start_date=datetime.date(2019, 6, 1)
     end_date=datetime.date.today()
     #フォルダー指定のアルゴリズ考えるのめんどいので簡易版
@@ -100,20 +80,20 @@ if __name__=='__main__':
         limited_save_path=save_path+'\\'+str(start_date.year)\
             +'\\'+str(start_date.month) 
     
-    dir_string='**/PublicDoc/*.xbrl' #'**/PublicDoc/*asr*E*.xbrl'
+    #dir_string='**/PublicDoc/*.xbrl' #'**/PublicDoc/*asr*E*.xbrl'
     print('calucalateing docID...')
     #docIDの整合性を整える 過去にHDF保存したものや書類一覧に記載のないものはHDF化しない
-    hdf_docIDs=docIDs_from_HDF(h5xbrl) #HDF group名から求める　docIDs        
+    hdf_docIDs=docIDsFromHDF(h5xbrl) #HDF group名から求める　docIDs        
     print('HDF docIDS:'+str(len(hdf_docIDs)))
     df_json=pd.read_hdf(h5xbrl,key='/index/edinetdocs') #edinetからｄｌした書類一覧のdocIDs
-    df_json=df_json[df_json['xbrlFlag']==1] #xbrl fileだけ扱う 
     df_json=column_shape(df_json)
     df_json=df_json[df_json['dtDate']>=start_date]
-    df_json=df_json[df_json['dtDate']<end_date]
+    #df_json=df_json[df_json['dtDate']<end_date]
     json_docIDs=df_json['docID'].to_list()
     print('json docIDs:'+str(len(json_docIDs)))    
-    dict_docIDs=docIDs_from_directory(limited_save_path,dir_string) #xbrl file
-    dir_docIDs=list(dict_docIDs.keys())
+    #dict_docIDs=docIDs_from_directory(limited_save_path,dir_string) #xbrl file
+    #dir_docIDs=list(dict_docIDs.keys())
+    dir_docIDs=docIDsFromDirectory(limited_save_path)
     print('directory docIDs:'+str(len(dir_docIDs)))
     #json_docIDsのうちdir_docIDsに含まれていないものを抽出
     dl_docIDs=list(set(json_docIDs) - set(dir_docIDs))
@@ -139,4 +119,3 @@ if __name__=='__main__':
     df_json=df_json[df_json['docID']=='S100FYT6']
     print(df_json['docTypeCode'])
     '''
-    
