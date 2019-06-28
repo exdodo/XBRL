@@ -1,5 +1,6 @@
 import pickle
 import zipfile
+import unicodedata
 from datetime import datetime
 from io import BytesIO
 from itertools import chain
@@ -16,6 +17,28 @@ from tqdm import tqdm
 from urllib3.exceptions import InsecureRequestWarning
 
 urllib3.disable_warnings(InsecureRequestWarning) #verify=False対策
+def docIDsFromFreeword(df_docs,seek_words=['トヨタ自動車'],seek_columns=[]) :
+    '''
+    df_docs:検索対象データーフレーム
+    seek_words:検索用語
+    seek_columns:検索列
+    '''
+    seek_words=[str(n) for n in seek_words ] #文字列に変換
+    seek_words=[ unicodedata.normalize("NFKC", n) 
+        if n.isdigit() else n for n in seek_words ] #数字は半角文字列に統一 
+    if len(seek_columns)==0 : seek_columns=df_docs.columns
+    docIDs=[]    
+    for col_name in seek_columns :
+        if col_name=='dtDateTime' : continue #object type以外は検索しない
+        if col_name=='dtDate' :  continue    
+        for seek_word in seek_words :            
+            df_contains = df_docs[df_docs[col_name].str.contains(seek_word,na=False)]
+            df_contains = df_contains.sort_values('submitDateTime')
+            if len(df_contains['docID'].to_list())>0 : 
+                docIDs.append(df_contains['docID'].to_list())
+    flat_docs = [item for sublist in docIDs for item in sublist]#flatten
+    unique_docs=list(set(flat_docs))    
+    return unique_docs
 def docIDsFromDirectory(save_path,dir_string='**/PublicDoc/*.xbrl'):
     '''
     save_path:xbrl保存基幹directory
