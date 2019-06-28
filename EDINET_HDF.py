@@ -78,6 +78,7 @@ def directHdfFromZIP(df_docs,docIDs,h5xbrl):
                     files=[i for i in files if 'XBRL/PublicDoc/' in i ]                    
                     count_files=[ i for i in files if '.xbrl' in i ]
                     #print(count_files)                   
+                    oiban='000'
                     for i in range(len(count_files)) :
                         if i<10:
                             oiban='00'+str(i)
@@ -93,10 +94,15 @@ def directHdfFromZIP(df_docs,docIDs,h5xbrl):
                         typefile=[i for i in files if '_pre.xml' in i and i.split('/')[-1][27:30]==oiban][0]
                         bType=BytesIO(existing_zip.read(typefile))
                         comp_files=[i for i in files if '_lab.xml' in i ]
-                        if len(comp_files)>0: 
+                        if len(comp_files)>0 : 
                             companyfile=[i for i in comp_files if  i.split('/')[-1][27:30]==oiban]
-                            bCompany=BytesIO(existing_zip.read(companyfile[0]))
-                            company_file_name=companyfile[0].split('/')[-1]
+                            if len(companyfile)>0 :
+                                bCompany=BytesIO(existing_zip.read(companyfile[0]))
+                                company_file_name=companyfile[0].split('/')[-1]
+                            else :
+                                #print(comp_files,oiban,docID)
+                                bCompany=None
+                                company_file_name=''
                         else :
                             bCompany=None
                             company_file_name=''                        
@@ -105,8 +111,7 @@ def directHdfFromZIP(df_docs,docIDs,h5xbrl):
                         df['amount']=df['amount'].str.replace(' ','') #空白文字削除
                         df['amount']=df['amount'].str[:220] #pytable制限                        
                         df.to_hdf(h5xbrl,edinet_code + '/' + docID+'_'+oiban , format='table',
-                          mode='a', data_columns=True, index=True, encoding='utf-8')
-                                 
+                          mode='a', data_columns=True, index=True, encoding='utf-8')                                 
     return
 def toHDFFromEdinet(h5xbrl,start_date,end_datee=dt.date.today()):
     print('calucalateing docID...')
@@ -137,7 +142,7 @@ def deleteHDF(df_docs,docIDs,h5xbrl):
                     print(docID)
                     #del h5File[edinet_code][docID]                  
     return    
-def test_json(h5xbrl):
+def test_json(h5xbrl):   
     hdf_docIDs=[]
     docID='S100G85N_000'
     if Path(h5xbrl).exists() :
@@ -158,9 +163,10 @@ def test_json(h5xbrl):
             #del h5File['E'] 
     return 
     #print(df_docs[df_docs['docID']=='S100G85N'])
+    
 if __name__=='__main__':
     h5xbrl='d:\\data\\hdf\\xbrl.h5'  #HDF file保存先        
-    start_date=dt.date(2019, 6, 20) #期間設定
+    start_date=dt.date(2019, 6, 27) #期間設定
     end_date=dt.date.today()
     toHDFFromEdinet(h5xbrl,start_date,end_date)
     
