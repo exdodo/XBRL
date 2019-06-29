@@ -35,9 +35,13 @@ urllib3.disable_warnings(InsecureRequestWarning) #verify=False対策
 def request_json(sdt,datelogs):    
     url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents.json'
     params = {'date': sdt, 'type': 2}
-    headers = {'User-Agent': 'mail-address'}
-    res = requests.get(url, params=params, verify=False,timeout=3.5, headers=headers)
-    sleep(1) #1秒間をあける
+    headers = {'User-Agent': 'exdodo@gmail.com'}
+    try :
+        res = requests.get(url, params=params,verify=False,timeout=3.5, headers=headers)
+        sleep(1) #1秒間をあける
+    except requests.exceptions.Timeout :
+        rjson={"metadata":{"status": 404}} #仮の(-：：-)P
+        return rjson,datelogs    
     try :
         rjson=res.json()
         if rjson['metadata']['status']=='200' :
@@ -46,7 +50,6 @@ def request_json(sdt,datelogs):
         return rjson,datelogs
     except json.JSONDecodeError as e:
         print(e)
-        print('通信回線混雑のためupdateされません。少し立って実行してください')
         rjson={"metadata":{"status": 404}} #仮の(-：：-)P
         return rjson,datelogs
 def load_datelog(h5xbrl):
@@ -122,7 +125,7 @@ def main_jsons(h5xbrl,last_day=date.today(),start_day=date.today()-timedelta(day
     if len(docs_json)>0:        
         df_doc2=pd.io.json.json_normalize(docs_json) #To Dataframe From Json
         df_doc2=df_doc2.reset_index(drop=True)
-        print('追加ドキュメント数'+len(df_doc2))
+        print('追加ドキュメント数'+str(len(df_doc2)))
         if Path(h5xbrl).exists():
             with h5py.File(h5xbrl, 'a') as h5File:
                 if 'edinetdocs' in h5File['index'].keys() : 
