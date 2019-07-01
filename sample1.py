@@ -8,14 +8,8 @@ from pathlib import Path
 import h5py
 import pandas as pd
 
-from EdinetXbrlParser import xbrl_to_dataframe
-
-from xbrlUtility import download_xbrl
-#from xbrlUtility import docIDsToHDF
-from xbrlUtility import docIDsFromFreeword
-from EDINET_HDF import docIDsFromHDF
-from EDINET_HDF import shapingJson
-from EDINET_HDF import directHdfFromZIP
+from EDINET_HDF import directHdfFromZIP, docIDsFromHDF, shapingJson
+from xbrlUtility import docIDsFromFreeword, download_xbrl
 
 
 def collect_holders(docIDs,df_docs,xbrl_path) :
@@ -31,27 +25,19 @@ def collect_holders(docIDs,df_docs,xbrl_path) :
     holders=list(chain.from_iterable(holders))  #flatten
     #holders=list(set(holders)) #unique
     return holders
-
-
 if __name__=='__main__':
     h5xbrl='d:\\Data\\hdf\\xbrl.h5' #xbrlをHDF化したファイルの保存先
-    #save_path='d:\\data\\xbrl\\download\\edinet' #xbrl file保存先(自分用)
-    #test
-    #h5xbrl='d:\\Data\\test\\testxbrl.h5' #xbrlをHDF化したファイルの保存先
-    #save_path='d:\\data\\xbrl\\temp' #xbrl file保存先の基幹フォルダー
-    #df_docs=pd.read_hdf(h5xbrl,'index/edinetdocs')
-    #df_docs=column_shape(df_docs) #dataframeを推敲
     df_docs=shapingJson(h5xbrl,nYears=[])
     holders=['株式会社レノ']#['Ｅｖｏ　Ｆｕｎｄ']#    
     count=0    
     for i in range(10): #10回以上繰り返して増えていくのは無限増殖の可能性あり
         gross_holders=[]
         docIDs=docIDsFromFreeword(df_docs,holders,['filerName'])
+        print('検索対象:'+str(len(docIDs)))
         hdf_docIDs=docIDsFromHDF(h5xbrl) #HDF保存済み　docIDs
-        dl_docIDs=list(set(docIDs)-set(hdf_docIDs)) #集合 docIDのみに含まれる
-        #download_xbrl(df_docs,save_path,dl_docIDs) #なければダウンロード       
-        #docIDsToHDF(dl_docIDs,h5xbrl,save_path,df_docs)# xbrlToHDF
-        directHdfFromZIP(df_docs,dl_docIDs,h5xbrl)
+        dl_docIDs=list(set(docIDs)-set(hdf_docIDs)) #集合差 docIDのみに含まれる
+        if len(dl_docIDs)>0 :
+            directHdfFromZIP(df_docs,dl_docIDs,h5xbrl)
         holders=collect_holders(docIDs,df_docs,h5xbrl)
         gross_holders.append(holders)
         holders=list(set(holders)) #unique

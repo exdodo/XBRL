@@ -298,6 +298,8 @@ def xbrl_to_dataframe(xbrlfile_name) :
         company_file=search_filename(xbrlfile,'_lab.xml')
         type_file=search_filename(xbrlfile,'_pre.xml')
     elif Path(xbrlfile_name).suffix=='.zip':
+        return
+        '''
         with zipfile.ZipFile(xbrlfile_name) as existing_zip:
             #files=existing_zip.infolist()
             files=existing_zip.namelist()        
@@ -312,7 +314,8 @@ def xbrl_to_dataframe(xbrlfile_name) :
                 #cal_file=BytesIO(existing_zip.read(calfiles[0]))
                 type_file=BytesIO(existing_zip.read(prefiles[0]))
                 company_file_name=prefiles[0]
-                company_file=BytesIO(existing_zip.read(labfiles[0]))                
+                company_file=BytesIO(existing_zip.read(labfiles[0]))
+        '''                
     if not Path('label').exists():
         Path('label').mkdir()  
     df_label = pd.DataFrame(index=[], columns=[])
@@ -336,8 +339,8 @@ def xbrl_to_dataframe(xbrlfile_name) :
     if company_file!=None :
         if type(company_file) is str:        
             df_comp_label,df_comp_type=parse_companyxml(company_file)
-        else :
-            df_comp_label,df_comp_type=parse_companyxml_zip(company_file,company_file_name)        
+        #else :
+        #    df_comp_label,df_comp_type=parse_companyxml_zip(company_file,company_file_name)        
         df_all_label=pd.concat([df_comp_label,df_label],sort=False)        
     else :
         df_all_label=df_label

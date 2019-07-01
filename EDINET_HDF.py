@@ -1,18 +1,22 @@
+import datetime as dt
+import zipfile
 from io import BytesIO
 from itertools import chain
 from pathlib import Path
-import zipfile
+from time import sleep
+
 import h5py
 import numpy as np
 import pandas as pd
 import requests
 import urllib3
-import datetime as dt
 from tqdm import tqdm
-from time import sleep
-from EdinetXbrlParser import zipParser
-from xbrlUtility import column_shape
+
 from EDINET_API import main_jsons
+from EdinetXbrlParser import zipParser
+#from xbrlUtility import column_shape
+from urllib3.exceptions import InsecureRequestWarning
+urllib3.disable_warnings(InsecureRequestWarning) #verify=False対策
 def shapingJson(h5xbrl,nYears=[]) :
     df_json=pd.read_hdf(h5xbrl,key='/index/edinetdocs')
     if nYears==[] :
@@ -64,7 +68,7 @@ def directHdfFromZIP(df_docs,docIDs,h5xbrl):
         #書類取得
         url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents/'+docID
         params = { 'type': 1} #1:zip 2 pdf
-        headers = {'User-Agent': 'add mail address'}            
+        headers = {'User-Agent': 'exdodo@gmail.com'}            
         try :
             res = requests.get(url, params=params,verify=False,timeout=3.5, headers=headers)
         except requests.exceptions.Timeout :
@@ -116,7 +120,7 @@ def directHdfFromZIP(df_docs,docIDs,h5xbrl):
 def toHDFFromEdinet(h5xbrl,start_date,end_datee=dt.date.today()):
     print('calucalateing docID...')
     hdf_docIDs=docIDsFromHDF(h5xbrl) #HDF group名から求める　docIDs
-    print('HDF docIDS'+str(len(hdf_docIDs)))
+    print('HDF docIDS:'+str(len(hdf_docIDs)))
     df_docs=shapingJson(h5xbrl)
     df_docs=df_docs[df_docs['dtDate']>=start_date]
     df_docs=df_docs[df_docs['dtDate']<end_date]
@@ -166,9 +170,20 @@ def test_json(h5xbrl):
     
 if __name__=='__main__':
     h5xbrl='d:\\data\\hdf\\xbrl.h5'  #HDF file保存先        
-    start_date=dt.date(2019, 6, 27) #期間設定
+    start_date=dt.date(2019, 6, 26) #期間設定
     end_date=dt.date.today()
+    docTypes={10:'有価証券通知書',20:'変更通知書（有価証券通知書）',30:'有価証券届出書', 
+     40:'訂正有価証券届出書',50:'届出の取下げ願い',60:'発行登録通知書', 
+     70:'変更通知書（発行登録通知書）',80:'発行登録書',90:'訂正発行登録書', 
+     100:'発行登録追補書類',110:'発行登録取下届出書',120:'有価証券報告書', 
+     130:'訂正有価証券報告書',135:'確認書',136:'訂正確認書',140:'四半期報告書', 
+     150:'訂正四半期報告書',160:'半期報告書',170:'訂正半期報告書',180:'臨時報告書', 
+     190:'訂正臨時報告書',200:'親会社等状況報告書',210:'訂正親会社等状況報告書', 
+     220:'自己株券買付状況報告書',230:'訂正自己株券買付状況報告書', 
+     235:'内部統制報告書',236:'訂正内部統制報告書',240:'公開買付届出書', 
+     250:'訂正公開買付届出書',260:'公開買付撤回届出書',270:'公開買付報告書', 
+     280:'訂正公開買付報告書',290:'意見表明報告書',300:'訂正意見表明報告書', 
+     310:'対質問回答報告書',320:'訂正対質問回答報告書',330:'別途買付け禁止の特例を受けるための申出書', 
+     340:'訂正別途買付け禁止の特例を受けるための申出書', 
+     350:'大量保有報告書',360:'訂正大量保有報告書',370:'基準日の届出書',380:'変更の届出書'}
     toHDFFromEdinet(h5xbrl,start_date,end_date)
-    
-    #test_json(h5xbrl)
-    

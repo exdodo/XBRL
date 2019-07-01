@@ -1,6 +1,6 @@
 import pickle
-import zipfile
 import unicodedata
+import zipfile
 from datetime import datetime
 from io import BytesIO
 from itertools import chain
@@ -60,7 +60,7 @@ def column_shape(df_json,nYears=[]) :
     df_json['secCode'] = df_json['secCode'].astype(int)
     df_json['secCode'] = df_json['secCode']/10
     df_json['secCode'] = df_json['secCode'].map('{:.0f}'.format)
-    cols=['docTypeCode','ordinanceCode','xbrlFlag']
+    cols=['docTypeCode','ordinanceCode','xbrlFlag'] #文字列として設定
     for col_name in cols :
         df_json[col_name]=df_json[col_name].fillna(0)
         df_json[col_name]=df_json[col_name].astype(int)
@@ -115,6 +115,15 @@ def del_datelogs(h5XBRL) :
                     #del h5File['index/edinetdocs']
                     del h5File['index']
             h5File.flush()
+def del_groupName(h5xbrl) :
+    with h5py.File(h5xbrl, 'a') as h5File:
+            #h5File=h5py.File(h5XBRL,'a')
+            if 'E' in h5File.keys() :   #上書き処理のため元dataset削除         
+                    #del h5File['index/datelogs']               
+                    #del h5File['index/edinetdocs']
+                    del h5File['E']
+            h5File.flush()
+    
 def restoreHDFfromDatelog(h5XBRL):    
     p=Path(h5XBRL)
     json_path=p.parent.resolve()    
@@ -129,8 +138,8 @@ def restoreHDFfromDatelog(h5XBRL):
             if 'index' in h5File.keys() :   #上書き処理のため元dataset削除
                 if 'datelogs' in h5File['index'].keys() :         
                     del h5File['index/datelogs']                           
-            print(h5File.keys())
-            print(h5File['index'].keys())
+            #print(h5File.keys())
+            #print(h5File['index'].keys())
             h5File.create_dataset('index/datelogs', data=np.array(datelogs, dtype='S10'))
             print(h5File['index'].keys())
             h5File.flush() 
@@ -140,29 +149,33 @@ def restoreHDFfromJSON(h5XBRL):
     p=Path(h5XBRL)
     json_path=p.parent.resolve()           
     json_file=str(json_path)+'\\xbrlDocs.json'
-    print(h5XBRL)
-    print(json_file)
+    #print(h5XBRL)
+    #print(json_file)
     df=pd.read_json(json_file)
     df.to_hdf(h5XBRL,'index/edinetdocs',mode='w',format='table',data_columns=True)    
-def findHDF(docID,df_docs,h5xbrl):
-    sr_docs=df_docs.set_index('docID')['edinetCode']
-    edinet_code=sr_docs[docID]
-    print(edinet_code+'/'+docID)
-    with h5py.File(h5xbrl,'r') as h5File:
-        if 'E02224' in h5File.keys() :
-            docID_keys=list(h5File['E02224'].keys())
-            print(docID_keys)
-            if 'S100G85N_000' in docID_keys:
-                print('bingo') 
 
+def test_h5xbrl(df_docs) :
+    sr_docs=df_docs.set_index('docID')['edinetCode']
+    print(type(sr_docs))
+    docID='S100G21U'
+    edinet_code=sr_docs[docID]
+    print(type(edinet_code))
 if __name__=='__main__':
     #save_path='d:\\data\\xbrl\\download\\edinet' #自分用
     h5xbrl='d:\\data\\hdf\\xbrl.h5' #xbrl 書類一覧Hdf　保存先
+    
+    
+    #HDF　index 初期化
+    #del_datelogs(h5xbrl)
+    
+    #restore datelog
+    #restoreHDFfromDatelog(h5xbrl)
+    #restoreHDFfromJSON(h5xbrl)
+    
+    #docIDs 検索
     df_json=pd.read_hdf(h5xbrl,key='/index/edinetdocs')
     df_docs = column_shape(df_json) #dataframeを推敲
-     
-    #  
-    docIDs=['S100G85N','S100G21U',]    
-    print(docIDs)
-    #----
-    findHDF(docIDs[0],df_docs,h5xbrl)
+    #seek_words=['ソニー']
+    #seek_columns=['filerName']
+    #docIDs=docIDsFromFreeword(df_docs,seek_words=['トヨタ自動車'],seek_columns=[])
+      
