@@ -113,7 +113,7 @@ def directHdfFromZIP(df_docs,docIDs,h5xbrl):
         #書類取得
         url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents/'+docID
         params = { 'type': 1} #1:zip 2 pdf
-        headers = {'User-Agent': 'exdodo@gmail.com'}            
+        headers = {'User-Agent': 'mail_address'}            
         try :
             res = requests.get(url, params=params,verify=False,timeout=3.5, headers=headers)
         except requests.exceptions.Timeout :
