@@ -35,7 +35,7 @@ urllib3.disable_warnings(InsecureRequestWarning) #verify=False対策
 def request_json(sdt,datelogs):    
     url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents.json'
     params = {'date': sdt, 'type': 2}
-    headers = {'User-Agent': 'exdodo@gmail.com'}
+    headers = {'User-Agent': 'mail_address'}
     try :
         res = requests.get(url, params=params,verify=False,timeout=3.5, headers=headers)
         sleep(1) #1秒間をあける
