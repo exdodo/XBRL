@@ -9,7 +9,7 @@ edinetからAPIで前日までの提出書類一覧情報(json形式)をHDF FILE
 EDINET_HDF.py：🌠🚀　HDF　NASAが選んだデーター形式
 
 EDINET_APIで取得した提出書類一覧をもとにZIP形式のXBRLファイルをpandas datframeに落とし込みHDF化。
-EDINETコード/文書コード＋追番　の形式でグループ名設定
+EDINETコード/year/文書コード＋追番　の形式でグループ名設定
 
 EdinetXbrlParser.py:xbrl形式をデータフレームへ
 
