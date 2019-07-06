@@ -154,7 +154,7 @@ def directHdfFromZIP(df_docs,docIDs,h5xbrl):
                         bCompany=None
                         company_file_name=''                        
                     df=zipParser(bXbrl,bXsd,bType,bCompany,company_file_name)                    
-                    print(df)
+                    
                     # saveToHDF                   
                     df['amount']=df['amount'].str.replace(' ','') #空白文字削除
                     df['amount']=df['amount'].str[:220] #pytable制限                        
