@@ -1,6 +1,6 @@
 import pickle
-import zipfile
 import unicodedata
+import zipfile
 from datetime import datetime
 from io import BytesIO
 from itertools import chain
@@ -39,7 +39,7 @@ def docIDsFromFreeword(df_docs,seek_words=['トヨタ自動車'],seek_columns=[]
     flat_docs = [item for sublist in docIDs for item in sublist]#flatten
     unique_docs=list(set(flat_docs))    
     return unique_docs
-def docIDsFromDirectory(save_path,dir_string='**/PublicDoc/*.xbrl'):
+def docIDsFromDirectory(save_path,dir_string='**/XBRL/PublicDoc/*.xbrl'):
     '''
     save_path:xbrl保存基幹directory
     dir_string :書類種別指定するとき　ex年次有報)dir_string='**/PublicDoc/*asr*.xbrl'
@@ -60,7 +60,7 @@ def column_shape(df_json,nYears=[]) :
     df_json['secCode'] = df_json['secCode'].astype(int)
     df_json['secCode'] = df_json['secCode']/10
     df_json['secCode'] = df_json['secCode'].map('{:.0f}'.format)
-    cols=['docTypeCode','ordinanceCode','xbrlFlag']
+    cols=['docTypeCode','ordinanceCode','xbrlFlag'] #文字列として設定
     for col_name in cols :
         df_json[col_name]=df_json[col_name].fillna(0)
         df_json[col_name]=df_json[col_name].astype(int)
@@ -79,29 +79,32 @@ def download_xbrl(df_docs,save_path,docIDs):
     error_docIDs=[]
     #docIDから既にdowloadしたもんか判断
     for docID in tqdm(docIDs) :                 
-        #docIDsからdataframe 抽出
-        if docID in df_docs['docID'].to_list()  : #削除ドキュメント対策
-            sDate=df_docs[df_docs['docID']==docID].submitDateTime.to_list()[0]
-            flag=df_docs[df_docs['docID']==docID].xbrlFlag.to_list()[0]
-            file_dir=save_path+'\\'+str(int(sDate[0:4]))+'\\'+\
-                str(int(sDate[5:7]))+'\\'+str(int(sDate[8:10]))+'\\'\
-                +docID+'\\'+docID
-            if not Path(file_dir).exists() and flag=='1':  #xdrl fileなければ取得            
-                #書類取得
-                url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents/'+docID
-                params = { 'type': 1} #1:zip 2 pdf
-                headers = {'User-Agent': 'add mail address'}            
-                res = requests.get(url, params=params,verify=False,timeout=3.5, headers=headers)            
-                sleep(1)
-                if 'stream' in res.headers['Content-Type'] :
-                    with zipfile.ZipFile(BytesIO(res.content)) as existing_zip:        
-                        existing_zip.extractall(file_dir)                    
-                else :
-                    error_docIDs.append(docID)
-                    #error_docID[docID]=res.headers
+        #docIDsからdataframe 抽出        
+        sDate=df_docs[df_docs['docID']==docID].submitDateTime.to_list()[0]
+        flag=df_docs[df_docs['docID']==docID].xbrlFlag.to_list()[0]
+        file_dir=save_path+'\\'+str(int(sDate[0:4]))+'\\'+\
+            str(int(sDate[5:7]))+'\\'+str(int(sDate[8:10]))+'\\'\
+            +docID+'\\'+docID
+        if not Path(file_dir).exists() and flag=='1':  #xdrl fileなければ取得            
+            #書類取得
+            url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents/'+docID
+            params = { 'type': 1} #1:zip 2 pdf
+            headers = {'User-Agent': 'add mail address'} 
+            try :
+                res = requests.get(url, params=params,verify=False,timeout=3.5, headers=headers)
+                sleep(1) #1秒間をあける
+            except requests.exceptions.Timeout :
+                continue
+            if 'stream' in res.headers['Content-Type'] :
+                with zipfile.ZipFile(BytesIO(res.content)) as existing_zip:
+                    #print(file_dir)        
+                    existing_zip.extractall(file_dir)                    
+            else :
+                error_docIDs.append(docID)
+                #error_docID[docID]=res.headers
     
     if len(error_docIDs)>0 :
-        print(str(len(error_docIDs))+'件xbrl保存せず。　log.txt')
+        #print(str(len(error_docIDs))+'件xbrl保存せず。　log.txt')
         with open('log.txt', mode='w') as f:
             f.writelines(error_docIDs)
             #print(error_docID)
@@ -129,8 +132,8 @@ def restoreHDFfromDatelog(h5XBRL):
             if 'index' in h5File.keys() :   #上書き処理のため元dataset削除
                 if 'datelogs' in h5File['index'].keys() :         
                     del h5File['index/datelogs']                           
-            print(h5File.keys())
-            print(h5File['index'].keys())
+            #print(h5File.keys())
+            #print(h5File['index'].keys())
             h5File.create_dataset('index/datelogs', data=np.array(datelogs, dtype='S10'))
             print(h5File['index'].keys())
             h5File.flush() 
@@ -140,29 +143,38 @@ def restoreHDFfromJSON(h5XBRL):
     p=Path(h5XBRL)
     json_path=p.parent.resolve()           
     json_file=str(json_path)+'\\xbrlDocs.json'
-    print(h5XBRL)
-    print(json_file)
+    #print(h5XBRL)
+    #print(json_file)
     df=pd.read_json(json_file)
-    df.to_hdf(h5XBRL,'index/edinetdocs',mode='w',format='table',data_columns=True)    
-def findHDF(docID,df_docs,h5xbrl):
-    sr_docs=df_docs.set_index('docID')['edinetCode']
-    edinet_code=sr_docs[docID]
-    print(edinet_code+'/'+docID)
-    with h5py.File(h5xbrl,'r') as h5File:
-        if 'E02224' in h5File.keys() :
-            docID_keys=list(h5File['E02224'].keys())
-            print(docID_keys)
-            if 'S100G85N_000' in docID_keys:
-                print('bingo') 
+    df.to_hdf(h5XBRL,'index/edinetdocs',mode='a',format='table',data_columns=True)    
 
+def test_h5xbrl(h5xbrl) :
+    
+    with h5py.File(h5xbrl, 'a') as h5File:
+        if 'index' in h5File.keys():
+            print(list(h5File['index'].keys()))
+        if 'E12460' in h5File.keys():
+            
+            print(len(list(h5File['E12460'].keys())))
 if __name__=='__main__':
     #save_path='d:\\data\\xbrl\\download\\edinet' #自分用
     h5xbrl='d:\\data\\hdf\\xbrl.h5' #xbrl 書類一覧Hdf　保存先
-    df_json=pd.read_hdf(h5xbrl,key='/index/edinetdocs')
-    df_docs = column_shape(df_json) #dataframeを推敲
-     
-    #  
-    docIDs=['S100G85N','S100G21U',]    
-    print(docIDs)
-    #----
-    findHDF(docIDs[0],df_docs,h5xbrl)
+    #restoreHDFfromDatelog(h5xbrl)
+    #restoreHDFfromJSON(h5xbrl)
+    #test_h5xbrl(h5xbrl)
+    
+    #HDF　index 初期化
+    #del_datelogs(h5xbrl)
+    #del_groupName(h5xbrl)
+    #restore datelog
+    #restoreHDFfromDatelog(h5xbrl)
+    #restoreHDFfromJSON(h5xbrl)
+    
+    #docIDs 検索
+    #df_json=pd.read_hdf(h5xbrl,key='/index/edinetdocs')
+    #df_docs = column_shape(df_json) #dataframeを推敲
+    
+    #seek_words=['ソニー']
+    #seek_columns=['filerName']
+    #docIDs=docIDsFromFreeword(df_docs,seek_words=['トヨタ自動車'],seek_columns=[])
+    #'S100AX75' 
