@@ -20,11 +20,10 @@ def collect_holders(docIDs,df_docs,xbrl_path) :
             #hdf_group=sr_docs[doc]+'/'+doc+'_000'
             edinet_code=sr_docs[docID]
             sDate=df_docs[df_docs['docID']==docID].submitDateTime.to_list()[0]
-            group_name=createGroupName(sDate,docID,edinet_code)+'/'+docID+'_000'
-            if edinet_code in h5File : 
-                if docID+'_000' in h5File[edinet_code] :
-                    df=pd.read_hdf(xbrl_path,key=group_name)
-                    holders.append((df['amount'][df['element_id']=='jplvh_cor_FilerNameInJapaneseDEI']).tolist())
+            group_name=createGroupName(sDate,docID,edinet_code)+'/'+docID+'_000'            
+            if group_name in h5File :
+                df=pd.read_hdf(xbrl_path,key=group_name)
+                holders.append((df['amount'][df['element_id']=='jplvh_cor_FilerNameInJapaneseDEI']).tolist())
     holders=list(chain.from_iterable(holders))  #flatten
     #holders=list(set(holders)) #unique
     return holders
