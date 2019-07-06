@@ -102,7 +102,8 @@ def main_jsons(h5xbrl,last_day=date.today(),start_day=date.today()-timedelta(day
         start_day=start_day+timedelta(days=1)    
     pbar.close()
     datelogs.sort()
-    print('UPDATE最終日 :'+datelogs[-1])
+    print('記録開始日:'+datelogs[0]+' UPDATE最終日 :'+datelogs[-1])
+    
     docs_json=list(chain.from_iterable(doc_list))  #flatten      
     #save datelogs & docs_json to HDF
     if len(datelogs)>0 :       

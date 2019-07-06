@@ -217,7 +217,8 @@ def parse_type(xmlfile):
     """
     type_dict_loc = defaultdict(list)
     type_dict_arc = defaultdict(list)
-    types = ET.parse(xmlfile)
+    parser = ET.XMLParser(recover=True)
+    types = ET.parse(xmlfile,parser)
     root=types.getroot()
     ns=root.nsmap
     serial_num=0
@@ -248,15 +249,20 @@ def parse_type(xmlfile):
     df_loc=pd.DataFrame(type_dict_loc)
     df_arc=pd.DataFrame(type_dict_arc)
     df_type=pd.merge(df_loc,df_arc,on=['serial_num'],how='inner')
-    #prefix追加 element_id from_e to_e
-    df_type['element_id']=df_type['prefix']+df_type['type_label']    
+    #prefixなければ追加 element_id from_e to_e   
+    if df_type['type_label'].str.startswith('jp').all():
+        df_type['element_id']=df_type['type_label']    
+    else:
+        df_type['element_id']=df_type['prefix']+df_type['type_label']     
     df_type_prefix=df_type[['prefix','type_label']]
     df_type_prefix=df_type_prefix.set_index('type_label')  
     dict_type_prefix=df_type_prefix.to_dict()
     df_type['from_prefix']=df_type['from_element_id'].map(dict_type_prefix['prefix'])
     df_type['to_prefix']=df_type['to_element_id'].map(dict_type_prefix['prefix'])
-    df_type['from_element_id']=df_type['from_prefix']+df_type['from_element_id']
-    df_type['to_element_id']=df_type['to_prefix']+df_type['to_element_id']
+    if df_type['from_element_id'].str.startswith('jp').all()==False:
+        df_type['from_element_id']=df_type['from_prefix']+df_type['from_element_id']
+    if df_type['to_element_id'].str.startswith('jp').all()==False:
+        df_type['to_element_id']=df_type['to_prefix']+df_type['to_element_id']       
     #不要列削除
     df_type=df_type.drop(columns=['serial_num','prefix','type_label'])    
     return df_type    
@@ -297,25 +303,8 @@ def xbrl_to_dataframe(xbrlfile_name) :
         xsd_file=search_filename(xbrlfile,'.xsd')
         company_file=search_filename(xbrlfile,'_lab.xml')
         type_file=search_filename(xbrlfile,'_pre.xml')
-    elif Path(xbrlfile_name).suffix=='.zip':
-        return
-        '''
-        with zipfile.ZipFile(xbrlfile_name) as existing_zip:
-            #files=existing_zip.infolist()
-            files=existing_zip.namelist()        
-            xbrlfiles=[ i for i in files if '.xbrl' in i and 'XBRL/PublicDoc/' in i]
-            xsdfiles=[ i for i in files if '.xsd' in i and 'XBRL/PublicDoc/' in i]
-            #calfiles=[ i for i in files if '_cal.xml' in i and 'XBRL/PublicDoc/' in i]
-            prefiles=[ i for i in files if '_pre.xml' in i and 'XBRL/PublicDoc/' in i]
-            labfiles=[ i for i in files if '_lab.xml' in i and 'XBRL/PublicDoc/' in i]
-            if len(xbrlfiles)==1 :                
-                xbrlfile=BytesIO(existing_zip.read(xbrlfiles[0]))
-                xsd_file=BytesIO(existing_zip.read(xsdfiles[0]))
-                #cal_file=BytesIO(existing_zip.read(calfiles[0]))
-                type_file=BytesIO(existing_zip.read(prefiles[0]))
-                company_file_name=prefiles[0]
-                company_file=BytesIO(existing_zip.read(labfiles[0]))
-        '''                
+    else :
+        return               
     if not Path('label').exists():
         Path('label').mkdir()  
     df_label = pd.DataFrame(index=[], columns=[])
@@ -416,12 +405,13 @@ def zipParser(xbrlfile,xsd_file,type_file,company_file,company_file_name) :
     else :
         df_all_label=df_label
     df_facts=parse_facts(xbrlfile)
+    #print(df_facts)
     df_type=parse_type(type_file)
     df_xbrl=merge_df(df_all_label,df_facts,df_type)
+    #print(df_xbrl['element_id'])
     if 'from_element_id' in df_xbrl.columns : #日本語ラベル追加
         df_all_label.reset_index(drop=True, inplace=True)
         add_label_string(df_xbrl,df_all_label)
-    #df_all_label.to_excel('all_label.xls',encoding='cp938')
     df_xbrl=df_xbrl.dropna(subset=['amount']) #amount空　削除
     return df_xbrl
 
@@ -431,7 +421,7 @@ if __name__=='__main__':
     h5xbrl='d:\\data\\hdf\\xbrl.h5' #xbrl 書類一覧HDF　保存先
     
     #docIDs=['S100G21U',]　#ソニー
-    docIDs=['S100G5ZP']
+    docIDs=['S100GETV']
     #docIDs=['S100DAZ4']#['S100DJ2G',]#['S100DAZ4']
     #確認書以外はOK 確認書はxbrlがない
     filenames=[]
@@ -442,8 +432,7 @@ if __name__=='__main__':
         for file_name in glob.glob(dir_text+'\\*.xbrl') :
             filenames.append(file_name)#ここにXBRL File 指定
     if filenames :
-        for xbrlfile in filenames :
-            
+        for xbrlfile in filenames :            
             df_xbrl=xbrl_to_dataframe(xbrlfile)
             #print(df_xbrl)        
             df_xbrl['amount']=df_xbrl['amount'].str[:3000] #excel cell 文字数制限   

@@ -29,18 +29,19 @@ import glob
 from pathlib import Path
 
 import h5py
-#'jpcrp_cor'財務　'jplvh_cor'大量保有報告書
-#from lxml import objectify as ET
 import pandas as pd
 
+from EDINET_HDF import createGroupName
 from xbrlUtility import column_shape
 
 
 def ToExcel_finace_sheets(df_docs,docIDs,h5xbrl) :
+    sr_docs=df_docs.set_index('docID')['edinetCode'] #dataframe to Series print(sr_docs['S100FSTI'])   
     for docID in docIDs :
-        edinet_codes=df_docs[df_docs['docID']==docID]['edinetCode'].tolist()
-        edinet_code=edinet_codes[0]
-        group_name=edinet_code+'/'+docID+'_000'        
+        edinet_code=sr_docs[docID]
+        sDate=df_docs[df_docs['docID']==docID].submitDateTime.to_list()[0] #hdf group名決めるため提出日活用    
+        group_name=createGroupName(sDate,docID,edinet_code) 
+        group_name=group_name+'/'+docID+'_000'       
         with h5py.File(h5xbrl,'r') as h5File :
                 if edinet_code in h5File.keys() :
                         print(edinet_code)
@@ -63,5 +64,5 @@ if __name__=='__main__':
     h5xbrl='d:\\Data\\hdf\\xbrl.h5' #xbrlをHDF化したファイルの保存先
     df_docs=pd.read_hdf(h5xbrl,'index/edinetdocs')
     df_docs=column_shape(df_docs) #dataframeを推敲
-    docIDs=['S100G21U',]
+    docIDs=['S100GETV'] #2019/7/3三重交通E04233
     ToExcel_finace_sheets(df_docs,docIDs,h5xbrl)
