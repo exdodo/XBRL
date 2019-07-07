@@ -77,8 +77,8 @@ def json_shaping(df):
     df['xbrlFlag']=df['xbrlFlag'].astype(np.int64)
     df['secCode']=df['secCode'].astype(np.float64)
     df['withdrawalStatus']=df['withdrawalStatus'].astype(np.int64)    
-    df=df.drop_duplicates(subset='docID')#重複削除    
-    df=df.dropna(subset=['submitDateTime'])#docIDだけあり他がｎｕｌｌ（諸般の事情で削除された）書類）が2000近くあるから削除
+    #df=df.drop_duplicates(subset='docID')#重複削除    
+    #df=df.dropna(subset=['submitDateTime'])#docIDだけあり他がｎｕｌｌ（諸般の事情で削除された）書類）が2000近くあるから削除
     df=df.sort_values('submitDateTime')#sort
     df.reset_index(drop=True, inplace=True) #index振り直し 
     #5年目より古いsubmitDateTime削除 未実装

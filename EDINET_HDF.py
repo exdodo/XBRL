@@ -36,7 +36,11 @@ def shapingJson(h5xbrl,nYears=[]) :
     #期間指定
     df_json=df_json[(df_json['dtDateTime'].dt.year >= min(nYears)) 
             & (df_json['dtDateTime'].dt.year <= max(nYears))]
-    #docIDだけあり他がｎｕｌｌ（諸般の事情で削除された）が2000近くあるから削除
+    #docIDだけあり他がｎｕｌｌ（諸般の事情で削除された）が2000近くあるから排除
+    #print(df_json[df_json['submitDateTime'].isnull()])
+    docIDs=df_json['docID'][df_json['submitDateTime'].isnull()].to_list()
+    #print(docIDs)
+    df_json=df_json[~df_json['docID'].isin(docIDs)]
     df_json=df_json.dropna(subset=['submitDateTime'])
     df_json=df_json.sort_values('submitDateTime')
     df_json=df_json[df_json['xbrlFlag']=='1'] #xbrl fileだけ扱う
@@ -154,7 +158,7 @@ def directHdfFromZIP(df_docs,docIDs,h5xbrl):
                         bCompany=None
                         company_file_name=''                        
                     df=zipParser(bXbrl,bXsd,bType,bCompany,company_file_name)                    
-                    print(df)
+                    
                     # saveToHDF                   
                     df['amount']=df['amount'].str.replace(' ','') #空白文字削除
                     df['amount']=df['amount'].str[:220] #pytable制限                        

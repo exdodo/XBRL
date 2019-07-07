@@ -89,7 +89,7 @@ def download_xbrl(df_docs,save_path,docIDs):
             #書類取得
             url = 'https://disclosure.edinet-fsa.go.jp/api/v1/documents/'+docID
             params = { 'type': 1} #1:zip 2 pdf
-            headers = {'User-Agent': 'add mail address'} 
+            headers = {'User-Agent': 'exdodo@gmail.com'} 
             try :
                 res = requests.get(url, params=params,verify=False,timeout=3.5, headers=headers)
                 sleep(1) #1秒間をあける
