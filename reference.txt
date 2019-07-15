@@ -39,3 +39,16 @@ EDINETタクソノミは© Copyright 2014 Financial Services Agency, The Japanes
      350:'大量保有報告書',360:'訂正大量保有報告書',370:'基準日の届出書',380:'変更の届出書'}
     #docIDs=['S100DJ2G',]#['S100DAZ4']  追番のあるdocID
     '''
+Index(['JCN', 'attachDocFlag', 'currentReportReason', 'disclosureStatus',
+       'docDescription', 'docID', 'docInfoEditStatus', 'docTypeCode',
+       'edinetCode', 'englishDocFlag', 'filerName', 'formCode', 'fundCode',
+       'issuerEdinetCode', 'opeDateTime', 'ordinanceCode', 'parentDocID',
+       'pdfFlag', 'periodEnd', 'periodStart', 'secCode', 'seqNumber',
+       'subjectEdinetCode', 'submitDateTime', 'subsidiaryEdinetCode',
+       'withdrawalStatus', 'xbrlFlag', 'dtDateTime', 'dtDate'],
+      dtype='object')
+Index(['role_id', 'from_element_id', 'to_element_id', 'order', 'element_id',
+       'from_prefix', 'to_prefix', 'lab_type', 'label', 'lang', 'label_string',
+       'role', 'lab_name', 'amount', 'context_ref', 'unit_ref', 'decimals',
+       'from_string', 'to_string'],
+      dtype='object')

@@ -17,7 +17,11 @@ from tqdm import tqdm
 from urllib3.exceptions import InsecureRequestWarning
 
 urllib3.disable_warnings(InsecureRequestWarning) #verify=False対策
-def docIDsFromFreeword(df_docs,seek_words=['トヨタ自動車'],seek_columns=[]) :
+def docIDsFromFreeword(df_docs,seek_words=['トヨタ自動車'],
+        seek_columns=['currentReportReason',  'docDescription', 'docID',
+         'docInfoEditStatus', 'docTypeCode', 'edinetCode', 'filerName', 'formCode', 'fundCode',
+       'issuerEdinetCode',  'ordinanceCode', 'parentDocID',
+        'secCode', 'seqNumber','subjectEdinetCode']) :
     '''
     df_docs:検索対象データーフレーム
     seek_words:検索用語
@@ -26,11 +30,13 @@ def docIDsFromFreeword(df_docs,seek_words=['トヨタ自動車'],seek_columns=[]
     seek_words=[str(n) for n in seek_words ] #文字列に変換
     seek_words=[ unicodedata.normalize("NFKC", n) 
         if n.isdigit() else n for n in seek_words ] #数字は半角文字列に統一 
-    if len(seek_columns)==0 : seek_columns=df_docs.columns
+    if len(seek_columns)==0 : 
+        seek_columns=df_docs.columns
     docIDs=[]    
     for col_name in seek_columns :
         if col_name=='dtDateTime' : continue #object type以外は検索しない
-        if col_name=='dtDate' :  continue    
+        if col_name=='dtDate' :  continue 
+        if df_docs[col_name].dtype!=object :continue   
         for seek_word in seek_words :            
             df_contains = df_docs[df_docs[col_name].str.contains(seek_word,na=False)]
             df_contains = df_contains.sort_values('submitDateTime')
@@ -69,6 +75,8 @@ def column_shape(df_json,nYears=[]) :
     df_json=df_json[(df_json['dtDateTime'].dt.year >= min(nYears)) 
             & (df_json['dtDateTime'].dt.year <= max(nYears))]
     #docIDだけあり他がｎｕｌｌ（諸般の事情で削除された）が2000近くあるから削除
+    docIDs=df_json['docID'][df_json['submitDateTime'].isnull()].to_list()
+    df_json=df_json[~df_json['docID'].isin(docIDs)]
     df_json=df_json.dropna(subset=['submitDateTime'])
     df_json=df_json.sort_values('submitDateTime')
     df_docs=df_json[df_json['xbrlFlag']=='1'] #xbrl fileだけ扱う         

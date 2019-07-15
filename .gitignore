@@ -135,3 +135,5 @@ select_docIDs_freeword.py
 toHDFfromXBRL.py
 pandas/_libs/hashtable_class_helper.pxi
 docIDsUtility.py
+bugtest.py
+cashflow1.py

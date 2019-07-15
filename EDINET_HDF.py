@@ -11,10 +11,11 @@ import pandas as pd
 import requests
 import urllib3
 from tqdm import tqdm
+from urllib3.exceptions import InsecureRequestWarning
 
 from EDINET_API import main_jsons
 from EdinetXbrlParser import zipParser
-from urllib3.exceptions import InsecureRequestWarning
+
 urllib3.disable_warnings(InsecureRequestWarning) #verify=False対策
 def shapingJson(h5xbrl,nYears=[]) :
     df_json=pd.read_hdf(h5xbrl,key='/index/edinetdocs')
@@ -36,16 +37,17 @@ def shapingJson(h5xbrl,nYears=[]) :
     #期間指定
     df_json=df_json[(df_json['dtDateTime'].dt.year >= min(nYears)) 
             & (df_json['dtDateTime'].dt.year <= max(nYears))]
-    #docIDだけあり他がｎｕｌｌ（諸般の事情で削除された）が2000近くあるから排除
+    #docIDだけあり他がｎｕｌｌ（諸般の事情で削除された）が2000近くあるから排除edinetdocsには残す
     #print(df_json[df_json['submitDateTime'].isnull()])
     docIDs=df_json['docID'][df_json['submitDateTime'].isnull()].to_list()
     #print(docIDs)
     df_json=df_json[~df_json['docID'].isin(docIDs)]
-    df_json=df_json.dropna(subset=['submitDateTime'])
-    df_json=df_json.sort_values('submitDateTime')
+    df_json=df_json.dropna(subset=['submitDateTime']) #必要か？
+    df_json=df_json.sort_values('submitDateTime') 
     df_json=df_json[df_json['xbrlFlag']=='1'] #xbrl fileだけ扱う
     #重複削除
-    df_json=df_json.drop_duplicates()         
+    df_json=df_json.drop_duplicates()
+    df_json.reset_index(drop=True, inplace=True) #index振り直し         
     return df_json
 def docIDsFromHDF(h5xbrl):
     '''#旧バージョン　/edinet_code/docID 用途
@@ -92,10 +94,7 @@ def docIDsFromHDF(h5xbrl):
             hdf_docIDs=list(set(hdf_docIDs)) #unique
             return hdf_docIDs
     return hdf_docIDs
-def docIDsFromHDF2(h5xbrl):
-    hdf_docIDs=[]
-
-    return hdf_docIDs      
+ 
 def createGroupName(sDate,docID,edinet_code): #HDF File group name決定
     #group_name='y'+str(int(sDate[0:4]))+'/'+'m'+str(int(sDate[5:7]))+'/'+'d'+str(int(sDate[8:10]))
     group_name=edinet_code+'/y'+str(int(sDate[0:4]))
