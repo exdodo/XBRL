@@ -165,8 +165,13 @@ def test_h5xbrl(h5xbrl) :
             
             print(len(list(h5File['E12460'].keys())))
 if __name__=='__main__':
+    #edinet downloadをupdateする
+    #週末にに一度ほど実行する
+    save_path='d:\\data\\xbrl\\download\\edinet' #edinetからxbrlデータ保存先
+
+    
     #save_path='d:\\data\\xbrl\\download\\edinet' #自分用
-    h5xbrl='d:\\data\\hdf\\xbrl.h5' #xbrl 書類一覧Hdf　保存先
+    #h5xbrl='d:\\data\\hdf\\xbrl.h5' #xbrl 書類一覧Hdf　保存先
     #restoreHDFfromDatelog(h5xbrl)
     #restoreHDFfromJSON(h5xbrl)
     #test_h5xbrl(h5xbrl)

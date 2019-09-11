@@ -137,3 +137,4 @@ pandas/_libs/hashtable_class_helper.pxi
 docIDsUtility.py
 bugtest.py
 cashflow1.py
+*.py
