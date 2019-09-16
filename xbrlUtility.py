@@ -164,11 +164,41 @@ def test_h5xbrl(h5xbrl) :
         if 'E12460' in h5File.keys():
             
             print(len(list(h5File['E12460'].keys())))
+def docIDsFromHDF2(h5xbrl):
+    #/year/edinet_code/docID
+    hdf_docIDs=[]    
+    if Path(h5xbrl).exists() :
+        with h5py.File(h5xbrl, 'r') as h5File:
+            key_list1=list(h5File.keys())
+            key_list2=[ list(h5File[key].keys()) for key in key_list1 if key!='index']
+            key_list2=list(chain.from_iterable(key_list2)) #flatten
+            key_list2=list(set(key_list2))
+            #print(key_list2)
+            key_groups=[]
+            for key1 in key_list1 :
+                for key2 in key_list2:
+                    key_groups.append(key1+'/'+key2)            
+            key_groups=[key_group for key_group in key_groups if key_group in h5File ] #group名あるのだけ残す
+            key_list3=[ list(h5File[key].keys()) for key in key_groups ]
+            key_list3=list(chain.from_iterable(key_list3)) #flatten
+            key_list3=list(set(key_list3)) #unique
+            hdf_docIDs=[ key[0:8] for key in key_list3] #追番削除
+            hdf_docIDs=list(set(hdf_docIDs)) #unique
+            return hdf_docIDs
+    return hdf_docIDs
 if __name__=='__main__':
     #edinet downloadをupdateする
     #週末にに一度ほど実行する
-    save_path='d:\\data\\xbrl\\download\\edinet' #edinetからxbrlデータ保存先
-
+    save_path='e:\\data\\xbrl\\download\\edinet' #edinetからxbrlデータ保存先
+    h5xbrl='d:\\data\\hdf\\xbrl.h5' #xbrl 書類一覧Hdf　保存先
+    dirDocIDs=docIDsFromDirectory(save_path,'**/XBRL/PublicDoc/*.xbrl')
+    df_json=pd.read_hdf(h5xbrl,key='/index/edinetdocs')
+    df_docs = column_shape(df_json) #dataframeを推敲
+    jsonDocIDs=df_docs['docID']
+    #jsonDocIDs=docIDsFromHDF2(h5xbrl)
+    dlDocIDs=list(set(jsonDocIDs)-set(dirDocIDs))
+    download_xbrl(df_docs,save_path,dlDocIDs)
+    print(len(dlDocIDs))
     
     #save_path='d:\\data\\xbrl\\download\\edinet' #自分用
     #h5xbrl='d:\\data\\hdf\\xbrl.h5' #xbrl 書類一覧Hdf　保存先
