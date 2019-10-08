@@ -148,6 +148,9 @@ def restoreHDFfromDatelog(h5XBRL):
             h5File.close()       
     return
 def restoreHDFfromJSON(h5XBRL):
+    '''
+    HDF fileへedinet apiのjson fileを記入
+    '''
     p=Path(h5XBRL)
     json_path=p.parent.resolve()           
     json_file=str(json_path)+'\\xbrlDocs.json'
@@ -186,22 +189,27 @@ def docIDsFromHDF2(h5xbrl):
             hdf_docIDs=list(set(hdf_docIDs)) #unique
             return hdf_docIDs
     return hdf_docIDs
-if __name__=='__main__':
+def dlXBRLToSavepath(save_path,h5xbrl):
     #edinet downloadをupdateする
-    #週末にに一度ほど実行する
-    save_path='e:\\data\\xbrl\\download\\edinet' #edinetからxbrlデータ保存先
-    h5xbrl='d:\\data\\hdf\\xbrl.h5' #xbrl 書類一覧Hdf　保存先
+    #edinetからxbrlフィルをダウンロードしsave_pathに保存
     dirDocIDs=docIDsFromDirectory(save_path,'**/XBRL/PublicDoc/*.xbrl')
     df_json=pd.read_hdf(h5xbrl,key='/index/edinetdocs')
     df_docs = column_shape(df_json) #dataframeを推敲
     jsonDocIDs=df_docs['docID']
     #jsonDocIDs=docIDsFromHDF2(h5xbrl)
     dlDocIDs=list(set(jsonDocIDs)-set(dirDocIDs))
-    download_xbrl(df_docs,save_path,dlDocIDs)
+    #download_xbrl(df_docs,save_path,dlDocIDs)
     print(len(dlDocIDs))
+
+if __name__=='__main__':
     
-    #save_path='d:\\data\\xbrl\\download\\edinet' #自分用
-    #h5xbrl='d:\\data\\hdf\\xbrl.h5' #xbrl 書類一覧Hdf　保存先
+    save_path='e:\\data\\xbrl\\download\\edinet' #edinetからxbrlデータ保存先
+    h5xbrl='d:\\data\\hdf\\xbrl.h5' #xbrl 書類一覧Hdf　保存先
+    
+    #save_pathにdownloadされていないfileをdlして保存
+    #dlXBRLToSavepath(save_path,h5xbrl)
+    
+    #edinet api のリストア
     #restoreHDFfromDatelog(h5xbrl)
     #restoreHDFfromJSON(h5xbrl)
     #test_h5xbrl(h5xbrl)
