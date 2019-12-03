@@ -166,7 +166,7 @@ def directHdfFromZIP(df_docs,docIDs,h5xbrl):
                                                   
     return
 def toHDFFromEdinet(h5xbrl,start_date=dt.date.today() - dt.timedelta(weeks=1),end_datee=dt.date.today()):
-    print('calucalateing docID...')
+    print('calculating docID...')
     hdf_docIDs=docIDsFromHDF(h5xbrl) #HDF group名から求める　docIDs
     print('HDF docIDS:'+str(len(hdf_docIDs)))
     df_docs=shapingJson(h5xbrl)
