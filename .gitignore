@@ -138,3 +138,7 @@ docIDsUtility.py
 bugtest.py
 cashflow1.py
 *.py
+newhigh-element.xlsx
+newhigh.xlsx
+test_sinpsy.xlsx
+train_sinpsy.xlsx
