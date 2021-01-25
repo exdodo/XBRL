@@ -25,14 +25,15 @@ EDINETタクソノミは© Copyright 2014 Financial Services Agency, The Japanes
 #20180331以降 2018
 @author: Yusuke
 """
+import datetime as dt
 import glob
 from pathlib import Path
 
 import h5py
 import pandas as pd
 
-from EDINET_HDF import createGroupName
-from xbrlUtility import column_shape
+from EDINET_HDF import createGroupName, directHdfFromZIP, docIDsFromHDF
+from xbrlUtility import column_shape, docIDsFromFreeword
 
 
 def ToExcel_finace_sheets(df_docs,docIDs,h5xbrl) :
@@ -41,8 +42,10 @@ def ToExcel_finace_sheets(df_docs,docIDs,h5xbrl) :
         edinet_code=sr_docs[docID]
         sDate=df_docs[df_docs['docID']==docID].submitDateTime.to_list()[0] #hdf group名決めるため提出日活用    
         group_name=createGroupName(sDate,docID,edinet_code) 
-        group_name=group_name+'/'+docID+'_000'       
+        group_name=group_name+'/'+docID+'_000'
+        print(group_name)       
         with h5py.File(h5xbrl,'r') as h5File :
+                print('find h5File')
                 if edinet_code in h5File.keys() :
                         print(edinet_code)
                         #print(list(h5File[edinet_code].keys()))
@@ -64,5 +67,20 @@ if __name__=='__main__':
     h5xbrl='d:\\Data\\hdf\\xbrl.h5' #xbrlをHDF化したファイルの保存先
     df_docs=pd.read_hdf(h5xbrl,'index/edinetdocs')
     df_docs=column_shape(df_docs) #dataframeを推敲
-    docIDs=['S100GETV'] #2019/7/3三重交通E04233
+    #検索日時範囲指定
+    start_date=dt.date.today() - dt.timedelta(days=30) #期間設定    
+    end_date=dt.date.today()
+    print(start_date,end_date- dt.timedelta(days=1))     
+    df_docs=df_docs[df_docs['dtDate']>=start_date]
+    df_docs=df_docs[df_docs['dtDate']<end_date]
+    #検索用語、検索列指定
+    seek_words=['S100F9FR','S100FFA5']#['S100GG9Q']
+    #seek_columns=['filerName']
+    docIDs=docIDsFromFreeword(df_docs,seek_words) 
+    hdf_docIDs=docIDsFromHDF(h5xbrl)
+    #docIDsがなければEDINET経由でHDF化
+    toHDF_docIDs=list( set(docIDs)-set(hdf_docIDs) )
+    print(toHDF_docIDs)
+    if len(toHDF_docIDs)>0 :
+        directHdfFromZIP(df_docs,toHDF_docIDs,h5xbrl)
     ToExcel_finace_sheets(df_docs,docIDs,h5xbrl)

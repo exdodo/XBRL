@@ -420,8 +420,8 @@ if __name__=='__main__':
     save_path='d:\\data\\xbrl\\download\\edinet' #自分用
     h5xbrl='d:\\data\\hdf\\xbrl.h5' #xbrl 書類一覧HDF　保存先
     
-    #docIDs=['S100G21U',]　#ソニー
-    docIDs=['S100GETV']
+    docIDs=['S100G21U'] #ソニー
+    #docIDs=['S100GETV']
     #docIDs=['S100DAZ4']#['S100DJ2G',]#['S100DAZ4']
     #確認書以外はOK 確認書はxbrlがない
     filenames=[]
